@@ -1,0 +1,18 @@
+-- PROPOSAL ONLY. DO NOT APPLY UNTIL preflight_messaging_readonly.sql is reviewed.
+-- Existing conversations policy appears to scope records to one user_id.
+-- A two-party messaging model needs explicit participants and policies;
+-- merely adding a recipient_id to a client insert would risk leaking messages.
+--
+-- Intended design:
+-- 1. conversations: id, property_id, tenant_id, landlord_id, created_at.
+-- 2. Unique tenant/landlord/property conversation key.
+-- 3. INSERT only by tenant whose role is tenant, for a property whose
+--    landlord_id matches the conversation landlord_id.
+-- 4. SELECT for tenant or landlord participant only.
+-- 5. messages: sender_id must be authenticated participant; SELECT by
+--    either participant, no client UPDATE or DELETE.
+-- 6. Prevent changes to conversation participants/property once created.
+-- 7. Index (conversation_id, created_at) for chronological messages.
+-- 8. Preserve/migrate existing conversation records before replacing RLS.
+-- 9. No service-role key in browser or client bundle.
+-- Pending exact columns, constraints, and RLS definitions from preflight.
