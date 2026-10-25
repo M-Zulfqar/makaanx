@@ -26,13 +26,11 @@ begin
 end;
 $$;
 
-drop trigger if exists makaanx_auth_user_created on auth.users;
-create trigger makaanx_auth_user_created
-after insert on auth.users
-for each row execute function public.makaanx_create_profile();
+-- Existing live database already has on_auth_user_created -> handle_new_user().
+-- DO NOT install a second trigger until that function has been inspected.
+-- The proposed makaanx_create_profile() function above is not attached yet.
+-- After inspection, choose exactly one profile-provisioning strategy.
 
--- Existing CSV shows permissive profile INSERT, UPDATE, DELETE policies.
--- Drop them BEFORE granting narrowly scoped column-level editing.
 alter table public.profiles enable row level security;
 drop policy if exists profiles_insert_own on public.profiles;
 drop policy if exists profiles_update_own on public.profiles;
@@ -50,7 +48,7 @@ with check ((select auth.uid()) = id);
 
 -- RLS controls rows, not columns. Column GRANTs are essential.
 -- Revoke table-wide writes, including grants inherited via PUBLIC.
-revoke insert, update, delete on public.profiles from public, anon, authenticated;
+revoke insert, update, delete, truncate, references, trigger on public.profiles from public, anon, authenticated;
 grant select on public.profiles to authenticated;
 grant update (full_name, phone) on public.profiles to authenticated;
 -- No client may edit role, trust_score, verification_score,
