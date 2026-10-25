@@ -6,7 +6,7 @@ export default async function InboxPage() {
   const {data:{user}}=await supabase.auth.getUser();
   if(!user)return <main className="p-8"><Link href="/auth/login">Sign in</Link></main>;
   const {data:conversations,error}=await supabase.from("conversations")
-    .select("id").eq("user_id",user.id).limit(100);
+    .select("id").eq("tenant_id",user.id).limit(100);
   return <main className="mx-auto max-w-4xl p-6 space-y-5">
     <h1 className="text-3xl font-bold">Messages</h1>
     <p className="text-muted-foreground">Your private conversations. Messages are stored in Supabase.</p>
