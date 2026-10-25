@@ -13,7 +13,7 @@ export default async function ConversationPage({params}:{params:Promise<{id:stri
     .select("id").eq("id",id).eq("user_id",user.id).maybeSingle();
   if(conversationError||!conversation)notFound();
   const {data:messages,error}=await supabase.from("messages")
-    .select("id,sender_id,content,created_at").eq("conversation_id",id)
+    .select("id,sender_id,body,created_at").eq("conversation_id",id)
     .order("created_at",{ascending:true}).limit(100);
   return <main className="mx-auto max-w-4xl p-6 space-y-6">
     <Link href="/dashboard/inbox" className="underline">← Inbox</Link>
@@ -23,7 +23,7 @@ export default async function ConversationPage({params}:{params:Promise<{id:stri
     <div className="space-y-3" aria-live="polite">{messages?.map(m=>
       <article key={m.id} className="rounded border p-4">
         <p className="text-sm font-medium">{m.sender_id===user.id?"You":"Other participant"}</p>
-        <p className="whitespace-pre-wrap break-words">{m.content}</p>
+        <p className="whitespace-pre-wrap break-words">{m.body}</p>
         <time className="text-xs text-muted-foreground">{m.created_at?new Date(m.created_at).toLocaleString():""}</time>
       </article>)}</div>
     <SendMessage conversationId={id}/>
