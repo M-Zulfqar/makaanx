@@ -48,6 +48,23 @@ with check ((select auth.uid()) = id);
 -- RLS controls rows, not columns. Column GRANTs are essential.
 -- Revoke table-wide writes, including grants inherited via PUBLIC.
 revoke insert, update, delete, truncate, references, trigger on public.profiles from public, anon, authenticated;
+-- Existing preflight confirms explicit column-level INSERT/UPDATE grants.
+-- Table-level REVOKE alone does not revoke those column grants.
+DO $revoke_columns$
+DECLARE
+  col record;
+BEGIN
+  FOR col IN
+    SELECT attname
+    FROM pg_attribute
+    WHERE attrelid = 'public.profiles'::regclass
+      AND attnum > 0 AND NOT attisdropped
+  LOOP
+    EXECUTE format('REVOKE INSERT (%I), UPDATE (%I), REFERENCES (%I) ON TABLE public.profiles FROM PUBLIC, anon, authenticated',
+      col.attname, col.attname, col.attname);
+  END LOOP;
+END;
+$revoke_columns$;
 grant select on public.profiles to authenticated;
 grant update (full_name, phone) on public.profiles to authenticated;
 -- No client may edit role, trust_score, verification_score,
