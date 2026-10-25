@@ -111,10 +111,7 @@ export default function SignupPage() {
         if (upload.error) {
           toast.warning("Account created. Upload your CNIC after signing in.");
         } else {
-          const update = await supabase.from("profiles").update({
-            cnic_path: path,
-            verification_status: "pending",
-          }).eq("id", data.user.id);
+          const update = await supabase.rpc("makaanx_submit_cnic", { document_path: path });
           if (update.error) toast.warning("Account created. Please retry CNIC submission after signing in.");
         }
       }
