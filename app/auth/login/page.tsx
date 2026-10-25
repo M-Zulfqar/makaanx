@@ -34,8 +34,13 @@ export default function LoginPage() {
       const { data: profile, error: profileError } = await supabase.from("profiles").select("role").eq("id", data.user.id).single();
       if (profileError || !profile) { await supabase.auth.signOut(); toast.error("Your account profile is missing. Contact support."); return; }
       if (profile.role !== formData.role) { await supabase.auth.signOut(); toast.error("The selected role does not match this account."); return; }
+      const { data: verification, error: verificationError } = await supabase.from("profiles")
+        .select("cnic_path").eq("id", data.user.id).single();
+      if (verificationError) { toast.error("Unable to load verification status."); return; }
       toast.success("Login successful!");
-      router.replace(profile.role === "admin" ? "/admin" : profile.role === "landlord" ? "/landlord" : "/dashboard");
+      router.replace(profile.role !== "admin" && !verification?.cnic_path
+        ? "/auth/verify-identity"
+        : profile.role === "admin" ? "/admin" : profile.role === "landlord" ? "/landlord" : "/dashboard");
       router.refresh();
     } catch { toast.error("Login service is unavailable. Check configuration."); }
     finally { setIsLoading(false); }
