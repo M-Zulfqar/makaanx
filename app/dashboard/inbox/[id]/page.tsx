@@ -10,7 +10,7 @@ export default async function ConversationPage({params}:{params:Promise<{id:stri
   const {data:{user}}=await supabase.auth.getUser();
   if(!user)return <Link href="/auth/login">Sign in</Link>;
   const {data:conversation,error:conversationError}=await supabase.from("conversations")
-    .select("id").eq("id",id).eq("user_id",user.id).maybeSingle();
+    .select("id").eq("id",id).eq("tenant_id",user.id).maybeSingle();
   if(conversationError||!conversation)notFound();
   const {data:messages,error}=await supabase.from("messages")
     .select("id,sender_id,body,created_at").eq("conversation_id",id)
