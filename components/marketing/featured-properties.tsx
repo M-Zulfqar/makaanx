@@ -149,7 +149,7 @@ export function FeaturedProperties() {
             {t.features.title}
           </Badge>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 text-balance">
-            {t.hero.browseProperties}
+            {t.hero.cta}
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Discover verified rental properties across Pakistan with AI-powered trust scores
