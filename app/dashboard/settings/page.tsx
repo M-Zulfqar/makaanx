@@ -305,7 +305,7 @@ export default function SettingsPage() {
                     )}
                     <span className={cn(
                       "absolute bottom-2 left-2 text-sm font-medium",
-                      t.id === "light" || t.id === "real-estate" ? "text-zinc-900" : "text-white"
+                      t.id === "light" || t.id === "realestate" ? "text-zinc-900" : "text-white"
                     )}>
                       {t.label}
                     </span>
