@@ -1,35 +1,34 @@
 -- MakaanX Milestone 1.2: review in Supabase SQL Editor before applying.
 -- Intended for the existing public.profiles table and private cnic-documents bucket.
 -- Ensure existing profile data and policies are backed up before applying.
-create or replace function public.makaanx_create_profile()
+-- Harden the EXISTING function used by on_auth_user_created.
+-- Never trust role or trust_score supplied in user metadata.
+create or replace function public.handle_new_user()
 returns trigger
 language plpgsql security definer
 set search_path = ''
 as $$
 declare
-  requested_role text;
+  safe_role text;
 begin
-  requested_role := coalesce(new.raw_user_meta_data ->> 'role', 'tenant');
-  if requested_role not in ('tenant', 'landlord') then
-    requested_role := 'tenant';
+  safe_role := coalesce(new.raw_user_meta_data ->> 'role', 'tenant');
+  if safe_role not in ('tenant', 'landlord') then
+    safe_role := 'tenant';
   end if;
-  insert into public.profiles (id, full_name, phone, role, verification_status)
+  insert into public.profiles
+    (id, full_name, phone, role, trust_score, verification_status)
   values (
     new.id,
     nullif(left(new.raw_user_meta_data ->> 'full_name', 200), ''),
     nullif(left(new.raw_user_meta_data ->> 'phone', 30), ''),
-    requested_role,
+    safe_role,
+    null,
     'pending'
   )
   on conflict (id) do nothing;
   return new;
 end;
 $$;
-
--- Existing live database already has on_auth_user_created -> handle_new_user().
--- DO NOT install a second trigger until that function has been inspected.
--- The proposed makaanx_create_profile() function above is not attached yet.
--- After inspection, choose exactly one profile-provisioning strategy.
 
 alter table public.profiles enable row level security;
 drop policy if exists profiles_insert_own on public.profiles;
