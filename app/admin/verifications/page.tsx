@@ -28,7 +28,7 @@ export default async function AdminVerifications() {
       <p className="text-sm">Role: {p.role}</p>
       <p className="text-sm">Status: {p.verification_status}</p>
       <p className="text-xs text-muted-foreground">Reference: {p.id}</p>
-      <IdentityReviewForm profileId={p.id} />
+      <p className="text-xs text-muted-foreground">Review controls will be enabled after staging validation and secure document access.</p>
     </article>)}</div>
   </main>;
 }
