@@ -40,6 +40,10 @@ for select to authenticated using ((select auth.uid()) = id);
 -- otherwise users could promote themselves to admin or approve their own CNIC.
 -- Use a carefully scoped server-side endpoint for allowed profile edits.
 
+-- Create a private CNIC bucket if it does not exist.
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('cnic-documents', 'cnic-documents', false, 10485760, array['image/jpeg', 'image/png'])
+on conflict (id) do nothing;
 -- Storage bucket must be PRIVATE, not public.
 update storage.buckets set public = false where id = 'cnic-documents';
 drop policy if exists "makaanx_upload_own_cnic" on storage.objects;
