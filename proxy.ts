@@ -6,6 +6,7 @@ export async function proxy(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) {
+    if (request.nextUrl.pathname.startsWith("/auth/")) return response;
     const redirect = request.nextUrl.clone();
     redirect.pathname = "/auth/unauthorized";
     redirect.search = "";
