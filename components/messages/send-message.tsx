@@ -17,7 +17,7 @@ export function SendMessage({conversationId}:{conversationId:string}) {
       const {data:{user},error:authError}=await supabase.auth.getUser();
       if(authError||!user)throw new Error("Sign in to send messages.");
       const {data:conversation,error:conversationError}=await supabase.from("conversations")
-        .select("id").eq("id",conversationId).eq("user_id",user.id).maybeSingle();
+        .select("id").eq("id",conversationId).or(`tenant_id.eq.${user.id},landlord_id.eq.${user.id}`).maybeSingle();
       if(conversationError)throw conversationError;
       if(!conversation)throw new Error("Conversation not available to this account.");
       const {error}=await supabase.from("messages").insert({
