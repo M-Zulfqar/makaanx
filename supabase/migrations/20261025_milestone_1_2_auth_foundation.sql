@@ -52,3 +52,32 @@ with check (
 );
 -- Admin review/read policies must be designed separately after checking
 -- the existing policies and the desired review workflow.
+
+-- Allow an authenticated user to submit only their own uploaded CNIC path.
+-- No permission to edit role, trust score or verification approval.
+create or replace function public.makaanx_submit_cnic(document_path text)
+returns void
+language plpgsql security definer
+set search_path = ''
+as $$
+begin
+  if auth.uid() is null then
+    raise exception 'Authentication required';
+  end if;
+  if document_path !~ ('^' || auth.uid()::text || '/cnic-[0-9a-f-]+[.](jpg|png)$') then
+    raise exception 'Invalid document path';
+  end if;
+  if not exists (
+    select 1 from storage.objects
+    where bucket_id = 'cnic-documents' and name = document_path
+  ) then
+    raise exception 'Document does not exist';
+  end if;
+  update public.profiles
+  set cnic_path = document_path, verification_status = 'pending',
+      verification_score = null
+  where id = auth.uid();
+end;
+$$;
+revoke all on function public.makaanx_submit_cnic(text) from public, anon;
+grant execute on function public.makaanx_submit_cnic(text) to authenticated;
