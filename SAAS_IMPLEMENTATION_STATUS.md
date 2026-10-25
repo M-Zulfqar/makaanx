@@ -20,7 +20,7 @@
 - Need end-to-end auth, permission, signup and OAuth tests.
 - Need proper storage cleanup, property image uploads, messaging, payments,
   notification delivery, property edit workflow, search/filter/pagination.
-- No payment processor or AI document verification is configured; never fabricate results.
+- Supabase-backed tenant and landlord overview dashboards (replacing mock activity).\n- Initial authenticated tenant inbox and message send/history pages; conversation creation and participant model pending.\n- No payment processor or AI document verification is configured; never fabricate results.
 - No live Supabase changes, deployment, or production credentials are made here.
 
 ## Release gates
