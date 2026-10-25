@@ -33,3 +33,10 @@
 ## Security note
 Existing static UI uses fabricated properties and statistics; do not interpret
 these as real user or financial data. The new routes explicitly query Supabase.
+
+## Messaging v2 (2026-10-26)
+- Read-only Supabase export confirmed zero conversations and messages.
+- Draft migration adds tenant/landlord participant IDs, restrictive RLS, and authenticated conversation-start RPC.
+- Tenant property details now include Message Landlord action; landlord inbox pages added.
+- All chat UI requires the v2 migration; do NOT enable on production before staging tests.
+- CI compilation is not equivalent to RLS or multi-user functional testing.
