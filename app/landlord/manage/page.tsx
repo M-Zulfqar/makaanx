@@ -7,12 +7,14 @@ export default async function ManagePropertiesPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return <Link href="/auth/login">Sign in</Link>;
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id",user.id).single();
+  if (profile?.role !== "landlord") return <p className="p-8" role="alert">Landlord access required.</p>;
   const { data: properties, error } = await supabase.from("properties")
     .select("id,title,address,city,rent").eq("landlord_id", user.id)
     .order("created_at", { ascending: false });
-  const { data: applications, error: applicationError } = await supabase.from("applications")
+  const { data: applications, error: applicationError } = properties?.length ? await supabase.from("applications")
     .select("id,property_id,tenant_id,status,created_at")
-    .in("property_id", properties?.map(p => p.id) ?? ["00000000-0000-0000-0000-000000000000"]);
+    .in("property_id", properties.map(p => p.id)) : { data: [], error: null };
   return <main className="mx-auto max-w-5xl p-6 space-y-8">
     <h1 className="text-3xl font-bold">Manage rental properties</h1>
     <CreatePropertyForm />
