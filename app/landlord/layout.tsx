@@ -52,7 +52,7 @@ const navigation = [
   { name: "Tenants", href: "/landlord/tenants", icon: Users },
   { name: "Payments", href: "/landlord/payments", icon: CreditCard },
   { name: "Analytics", href: "/landlord/analytics", icon: BarChart3 },
-  { name: "Messages", href: "/landlord/messages", icon: MessageSquare, badge: 3 },
+  { name: "Messages", href: "/landlord/inbox", icon: MessageSquare, badge: 3 },
   { name: "Settings", href: "/landlord/settings", icon: Settings },
 ]
 
