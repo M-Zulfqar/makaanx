@@ -53,6 +53,8 @@ import { AIChatbot } from "@/components/ai-chatbot";
 const sidebarLinks = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard", labelUrdu: "ڈیش بورڈ" },
   { href: "/dashboard/properties", icon: Home, label: "Properties", labelUrdu: "پراپرٹیز" },
+  { href: "/dashboard/applications", icon: Calendar, label: "Applications", labelUrdu: "درخواستیں" },
+  { href: "/dashboard/favorites", icon: Stars, label: "Saved", labelUrdu: "محفوظ" },
   { href: "/dashboard/messages", icon: MessageSquare, label: "Messages", labelUrdu: "پیغامات" },
   { href: "/dashboard/payments", icon: CreditCard, label: "Payments", labelUrdu: "ادائیگیاں" },
   { href: "/dashboard/roommates", icon: Users, label: "Roommates", labelUrdu: "روم میٹس" },
