@@ -48,6 +48,7 @@ import { cn } from "@/lib/utils"
 const navigation = [
   { name: "Dashboard", href: "/landlord", icon: Home },
   { name: "My Properties", href: "/landlord/properties", icon: Building2 },
+  { name: "Manage Listings", href: "/landlord/manage", icon: Plus },
   { name: "Tenants", href: "/landlord/tenants", icon: Users },
   { name: "Payments", href: "/landlord/payments", icon: CreditCard },
   { name: "Analytics", href: "/landlord/analytics", icon: BarChart3 },
