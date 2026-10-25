@@ -1,0 +1,4 @@
+"use client";
+import { useState } from "react";
+import { createClient } from "@/lib/supabase/browser";
+export default function ResetPassword(){const [password,setPassword]=useState("");const [message,setMessage]=useState("");async function submit(e:React.FormEvent){e.preventDefault();if(password.length<8){setMessage("Use at least 8 characters.");return;}const {error}=await createClient().auth.updateUser({password});setMessage(error?error.message:"Password updated. You can now sign in.");}return <main className="min-h-screen flex items-center justify-center p-6"><form onSubmit={submit} className="w-full max-w-md space-y-4"><h1 className="text-2xl font-bold">Choose a new password</h1><input type="password" required minLength={8} value={password} onChange={e=>setPassword(e.target.value)} className="w-full rounded border p-3"/><button className="rounded bg-primary px-5 py-3 text-primary-foreground">Update password</button><p role="status">{message}</p></form></main>}

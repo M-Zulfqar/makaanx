@@ -1,0 +1,2 @@
+import Link from "next/link";
+export default function Unauthorized() { return <main className="min-h-screen flex flex-col items-center justify-center gap-4 p-8"><h1 className="text-2xl font-semibold">Access not available</h1><p>Your account does not have permission for this dashboard, or its profile is not yet set up.</p><Link className="underline" href="/auth/login">Back to login</Link></main>; }
