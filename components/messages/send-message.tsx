@@ -21,7 +21,7 @@ export function SendMessage({conversationId}:{conversationId:string}) {
       if(conversationError)throw conversationError;
       if(!conversation)throw new Error("Conversation not available to this account.");
       const {error}=await supabase.from("messages").insert({
-        conversation_id:conversationId,sender_id:user.id,content:body.trim(),
+        conversation_id:conversationId,sender_id:user.id,body:body.trim(),
       });
       if(error)throw error;
       setBody("");
