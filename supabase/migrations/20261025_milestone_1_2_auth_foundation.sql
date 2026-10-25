@@ -140,3 +140,54 @@ grant execute on function public.makaanx_submit_cnic(text) to authenticated;
 -- 6. Back up the database and test on staging first.
 -- Admin verification must be performed by a trusted server-side workflow,
 -- not by granting authenticated users direct verification-field updates.
+
+-- Restrict new rental operations to verified role identities.
+-- These replace the policies observed in the supplied policy export.
+drop policy if exists applications_tenant_insert on public.applications;
+create policy applications_tenant_insert on public.applications
+for insert to authenticated with check (
+  tenant_id = (select auth.uid())
+  and status = 'pending'
+  and exists (
+    select 1 from public.profiles p
+    where p.id = (select auth.uid()) and p.role = 'tenant'
+  )
+);
+drop policy if exists applications_landlord_update on public.applications;
+create policy applications_landlord_update on public.applications
+for update to authenticated
+using (
+  exists (select 1 from public.properties p
+          where p.id = applications.property_id
+            and p.landlord_id = (select auth.uid()))
+)
+with check (
+  exists (select 1 from public.properties p
+          where p.id = applications.property_id
+            and p.landlord_id = (select auth.uid()))
+);
+-- NOTE: RLS cannot restrict UPDATE columns. Prevent landlords from
+-- changing tenant_id/property_id using column-level privileges.
+revoke update on public.applications from public, anon, authenticated;
+do $revoke_application_columns$
+declare c record;
+begin
+  for c in select attname from pg_attribute
+           where attrelid='public.applications'::regclass
+             and attnum>0 and not attisdropped
+  loop
+    execute format('revoke update (%I) on public.applications from public, anon, authenticated',c.attname);
+  end loop;
+end;
+$revoke_application_columns$;
+grant update (status) on public.applications to authenticated;
+
+drop policy if exists properties_landlord_insert on public.properties;
+create policy properties_landlord_insert on public.properties
+for insert to authenticated with check (
+  landlord_id = (select auth.uid())
+  and exists (
+    select 1 from public.profiles p
+    where p.id = (select auth.uid()) and p.role = 'landlord'
+  )
+);
