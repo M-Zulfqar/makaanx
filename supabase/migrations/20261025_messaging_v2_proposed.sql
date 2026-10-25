@@ -1,18 +1,33 @@
--- PROPOSAL ONLY. DO NOT APPLY UNTIL preflight_messaging_readonly.sql is reviewed.
--- Existing conversations policy appears to scope records to one user_id.
--- A two-party messaging model needs explicit participants and policies;
--- merely adding a recipient_id to a client insert would risk leaking messages.
+-- MakaanX messaging schema migration (DRAFT; DO NOT APPLY YET)
+-- Confirmed from Supabase export (28 rows):
+-- conversations(id uuid, user_id uuid, property_id uuid nullable,
+--   participant_name text not null, participant_role text not null,
+--   participant_avatar text nullable, last_message text nullable,
+--   last_message_at timestamptz not null, created_at timestamptz not null).
+-- messages(id uuid, conversation_id uuid, sender_id uuid, body text not null,
+--   attachment_name/path/type text nullable, created_at timestamptz not null).
+-- Existing policies only authorize conversations.user_id.
 --
--- Intended design:
--- 1. conversations: id, property_id, tenant_id, landlord_id, created_at.
--- 2. Unique tenant/landlord/property conversation key.
--- 3. INSERT only by tenant whose role is tenant, for a property whose
---    landlord_id matches the conversation landlord_id.
--- 4. SELECT for tenant or landlord participant only.
--- 5. messages: sender_id must be authenticated participant; SELECT by
---    either participant, no client UPDATE or DELETE.
--- 6. Prevent changes to conversation participants/property once created.
--- 7. Index (conversation_id, created_at) for chronological messages.
--- 8. Preserve/migrate existing conversation records before replacing RLS.
--- 9. No service-role key in browser or client bundle.
--- Pending exact columns, constraints, and RLS definitions from preflight.
+-- Required security invariant: both actual participants may read/write,
+-- but cannot impersonate another sender or rewrite participant IDs.
+--
+-- Migration plan:
+-- A. Inspect existing rows and auth.users references before choosing backfill.
+-- B. Add tenant_id and landlord_id to conversations, initially nullable.
+-- C. Backfill from validated historical records; participant_name and
+--    participant_role are DISPLAY FIELDS, not reliable identity keys.
+-- D. For new conversations enforce tenant_id + landlord_id both NOT NULL
+--    with a constraint or dedicated RPC; tenant must match auth.uid().
+-- E. Ensure landlord_id equals properties.landlord_id for property_id.
+-- F. Replace ALL existing conversation SELECT/INSERT/UPDATE policies
+--    (permissive policies combine with OR) with participant-based policies.
+-- G. Replace messages SELECT/INSERT policies using EXISTS on the new
+--    participant columns; sender_id must equal auth.uid().
+-- H. Revoke broad UPDATE grants on conversations and messages; avoid
+--    client writes to tenant_id, landlord_id, sender_id, property_id.
+-- I. Test cross-user isolation with at least 2 tenants + 2 landlords.
+-- J. Roll out matching frontend changes only after staging verification.
+--
+-- This file intentionally does not run DDL: the current CSV contains
+-- schema/policies but no existing row counts or historical participant IDs.
+-- Blind backfill could expose private messages to the wrong account.
