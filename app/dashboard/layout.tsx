@@ -55,7 +55,7 @@ const sidebarLinks = [
   { href: "/dashboard/properties", icon: Home, label: "Properties", labelUrdu: "پراپرٹیز" },
   { href: "/dashboard/applications", icon: Calendar, label: "Applications", labelUrdu: "درخواستیں" },
   { href: "/dashboard/favorites", icon: Stars, label: "Saved", labelUrdu: "محفوظ" },
-  { href: "/dashboard/messages", icon: MessageSquare, label: "Messages", labelUrdu: "پیغامات" },
+  { href: "/dashboard/inbox", icon: MessageSquare, label: "Messages", labelUrdu: "پیغامات" },
   { href: "/dashboard/payments", icon: CreditCard, label: "Payments", labelUrdu: "ادائیگیاں" },
   { href: "/dashboard/roommates", icon: Users, label: "Roommates", labelUrdu: "روم میٹس" },
   { href: "/dashboard/settings", icon: Settings, label: "Settings", labelUrdu: "ترتیبات" },
