@@ -40,3 +40,9 @@ these as real user or financial data. The new routes explicitly query Supabase.
 - Tenant property details now include Message Landlord action; landlord inbox pages added.
 - All chat UI requires the v2 migration; do NOT enable on production before staging tests.
 - CI compilation is not equivalent to RLS or multi-user functional testing.
+
+## Critical profile privilege finding (2026-10-26)
+- User-provided read-only SQL export confirms anon and authenticated hold table-wide INSERT/UPDATE on public.profiles, including sensitive role and verification columns.
+- Proposed focused mitigation: supabase/migrations/20261026_profiles_emergency_grants_proposed.sql; **not applied**.
+- Read-only effective-permission verification: supabase/verify_profiles_lockdown_readonly.sql.
+- Before rollout: stage/backup/test signup provisioning, name/phone edit, role escalation prevention, and harden handle_new_user metadata. Avoid production writes without a reviewed plan.
