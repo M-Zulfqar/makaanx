@@ -73,7 +73,7 @@ begin
       where attrelid = format('public.%I', t)::regclass
         and attnum > 0 and not attisdropped
     loop
-      execute format('revoke update (%I), delete, insert (%I) on public.%I from public, anon, authenticated',
+      execute format('revoke update (%I), insert (%I) on public.%I from public, anon, authenticated',
         c.attname, c.attname, t);
     end loop;
   end loop;
