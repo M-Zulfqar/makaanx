@@ -478,4 +478,8 @@ export const translations = {
 } as const;
 
 export type Language = keyof typeof translations;
-export type TranslationKeys = { [K in keyof typeof translations.en]: typeof translations.en[K] extends readonly string[] ? readonly string[] : typeof translations.en[K] extends object ? { [P in keyof typeof translations.en[K]]: typeof translations.en[K][P] extends object ? { [Q in keyof typeof translations.en[K][P]]: string } : string } : string };
+type WidenTranslations<T> = T extends string ? string
+  : T extends readonly string[] ? readonly string[]
+  : T extends object ? { readonly [K in keyof T]: WidenTranslations<T[K]> }
+  : T;
+export type TranslationKeys = WidenTranslations<typeof translations.en>;
