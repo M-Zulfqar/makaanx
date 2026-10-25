@@ -11,6 +11,8 @@ export async function GET(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.redirect(new URL("/auth/login", origin));
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+  const { data: verification } = await supabase.from("profiles").select("cnic_path").eq("id", user.id).single();
+  if (profile && !verification?.cnic_path && profile.role !== "admin") return NextResponse.redirect(new URL("/auth/verify-identity", origin));
   const destination = profile?.role === "admin" ? "/admin" : profile?.role === "landlord" ? "/landlord" : profile?.role === "tenant" ? "/dashboard" : "/auth/unauthorized";
   return NextResponse.redirect(new URL(destination, origin));
 }
