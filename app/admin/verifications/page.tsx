@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { IdentityReviewForm } from "@/components/admin/identity-review-form";
 import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
