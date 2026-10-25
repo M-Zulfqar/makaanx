@@ -28,6 +28,8 @@ import {
 import { cn } from "@/lib/utils";
 import { useDropzone } from "react-dropzone";
 import Confetti from "react-confetti";
+import { createClient } from "@/lib/supabase/browser";
+import { toast } from "sonner";
 
 const steps = [
   { id: 1, title: "Personal Info", titleUrdu: "ذاتی معلومات" },
@@ -57,6 +59,7 @@ export default function SignupPage() {
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
+      if (acceptedFiles[0].size > 10 * 1024 * 1024) { toast.error("Maximum CNIC image size is 10 MB."); return; }
       setFormData((prev) => ({ ...prev, cnicImage: acceptedFiles[0] }));
     }
   }, []);
@@ -69,31 +72,62 @@ export default function SignupPage() {
     maxFiles: 1,
   });
 
-  const nextStep = () => {
-    if (currentStep === 3) {
-      // Start AI verification
-      setIsVerifying(true);
-      setCurrentStep(4);
-      
-      // Simulate AI verification
-      let score = 0;
-      const interval = setInterval(() => {
-        score += Math.random() * 15;
-        if (score >= 100) {
-          score = 92 + Math.random() * 6; // Final score between 92-98
-          clearInterval(interval);
-          setTrustScore(Math.round(score));
-          setTimeout(() => {
-            setIsVerifying(false);
-            setCurrentStep(5);
-            setShowConfetti(true);
-            setTimeout(() => setShowConfetti(false), 5000);
-          }, 1000);
-        }
-        setTrustScore(Math.min(Math.round(score), 100));
-      }, 200);
-    } else {
+  const nextStep = async () => {
+    if (currentStep !== 3) {
       setCurrentStep((prev) => Math.min(prev + 1, 5));
+      return;
+    }
+    if (!formData.cnicImage || !["tenant", "landlord"].includes(formData.role)) return;
+    if (formData.cnicImage.size > 10 * 1024 * 1024) {
+      toast.error("CNIC image must be smaller than 10 MB.");
+      return;
+    }
+    setIsVerifying(true);
+    setCurrentStep(4);
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email.trim(),
+        password: formData.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: {
+            full_name: formData.fullName.trim(),
+            phone: formData.phone.trim(),
+            role: formData.role,
+          },
+        },
+      });
+      if (error) throw error;
+      if (!data.user) throw new Error("Registration could not be completed.");
+      // Email confirmation normally means no session exists yet.
+      // CNIC upload is performed after sign-in, not with an anonymous token.
+      if (data.session) {
+        const path = `${data.user.id}/cnic-${crypto.randomUUID()}.${formData.cnicImage.type === "image/png" ? "png" : "jpg"}`;
+        const upload = await supabase.storage.from("cnic-documents").upload(path, formData.cnicImage, {
+          contentType: formData.cnicImage.type,
+          upsert: false,
+        });
+        if (upload.error) {
+          toast.warning("Account created. Upload your CNIC after signing in.");
+        } else {
+          const update = await supabase.from("profiles").update({
+            cnic_path: path,
+            verification_status: "pending",
+          }).eq("id", data.user.id);
+          if (update.error) toast.warning("Account created. Please retry CNIC submission after signing in.");
+        }
+      }
+      setTrustScore(0); // No AI verification has run. Never fabricate a score.
+      setCurrentStep(5);
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 5000);
+      toast.success(data.session ? "Account created. CNIC review is pending." : "Check your email to confirm your account, then submit your CNIC.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Registration failed.");
+      setCurrentStep(3);
+    } finally {
+      setIsVerifying(false);
     }
   };
 
@@ -108,7 +142,7 @@ export default function SignupPage() {
           formData.fullName &&
           formData.email &&
           formData.phone &&
-          formData.password &&
+          formData.password.length >= 8 &&
           formData.password === formData.confirmPassword
         );
       case 2:
@@ -550,7 +584,7 @@ export default function SignupPage() {
                     >
                       {trustScore}%
                     </motion.span>
-                    <span className="text-sm text-muted-foreground">Trust Score</span>
+                    <span className="text-sm text-muted-foreground">Verification pending</span>
                   </div>
                 </div>
 
@@ -559,12 +593,12 @@ export default function SignupPage() {
                     "text-2xl font-bold text-foreground mb-2",
                     isRtl && "font-urdu"
                   )}>
-                    {isVerifying ? t.auth.trustScoreCalculating : "Verification Complete!"}
+                    {isVerifying ? t.auth.trustScoreCalculating : "Registration submitted"}
                   </h2>
                   <p className="text-muted-foreground">
                     {isVerifying
-                      ? "Our AI is analyzing your documents..."
-                      : "Your profile has been verified successfully."}
+                      ? "Creating your account securely..."
+                      : "Identity verification requires document submission and admin review."}
                   </p>
                 </div>
 
@@ -608,26 +642,20 @@ export default function SignupPage() {
                     "text-muted-foreground mb-4",
                     isRtl && "font-urdu"
                   )}>
-                    {t.auth.welcomeMessage}
+                    Check your email to confirm your account. After signing in, upload your CNIC for admin review.
                   </p>
                   <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary">
                     <Sparkles className="h-4 w-4" />
-                    <span className="font-medium">Trust Score: {trustScore}%</span>
+                    <span className="font-medium">Verification pending admin review</span>
                   </div>
                 </div>
 
                 <Button
                   size="lg"
                   className="w-full h-12"
-                  onClick={() => {
-                    if (formData.role === "landlord") {
-                      router.push("/landlord");
-                    } else {
-                      router.push("/dashboard");
-                    }
-                  }}
+                  onClick={() => router.push("/auth/login")}
                 >
-                  Go to {formData.role === "landlord" ? "Landlord" : "Tenant"} Dashboard
+                  Continue to Login
                   <ArrowRight className="h-5 w-5 ml-2" />
                 </Button>
               </motion.div>
