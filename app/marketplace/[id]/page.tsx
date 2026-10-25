@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { ApplyButton } from "@/components/marketplace/apply-button";
+import { FavoriteButton } from "@/components/marketplace/favorite-button";
 
 export const dynamic = "force-dynamic";
 export default async function PropertyPage({ params }: { params: Promise<{ id: string }> }) {
@@ -20,6 +21,7 @@ export default async function PropertyPage({ params }: { params: Promise<{ id: s
     <h1 className="text-3xl font-bold">{property.title ?? "Rental property"}</h1>
     <p>{[property.address,property.city].filter(Boolean).join(", ")}</p>
     <p className="text-xl font-semibold">PKR {Number(property.rent ?? 0).toLocaleString()} / month</p>
+    <FavoriteButton propertyId={property.id} />
     {!user ? <Link href="/auth/login" className="underline">Sign in to apply</Link>
       : profile?.role === "tenant" ? <ApplyButton propertyId={property.id} />
       : <p>Only tenant accounts can submit rental applications.</p>}
