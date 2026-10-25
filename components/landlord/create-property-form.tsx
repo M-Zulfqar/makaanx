@@ -14,7 +14,14 @@ export function CreatePropertyForm() {
     const address = String(form.get("address") ?? "").trim();
     const city = String(form.get("city") ?? "").trim();
     const rent = Number(form.get("rent"));
-    if (!title || !address || !city || !Number.isFinite(rent) || rent <= 0) {
+    const type = String(form.get("type") ?? "Apartment");
+    const bedrooms = Number(form.get("bedrooms") ?? 0);
+    const bathrooms = Number(form.get("bathrooms") ?? 0);
+    const area = Number(form.get("area") ?? 0);
+    if (!title || !address || !city || !["Apartment","House","Room","Commercial"].includes(type) ||
+      !Number.isFinite(rent) || rent <= 0 ||
+      ![bedrooms,bathrooms,area].every(n => Number.isFinite(n) && n >= 0) ||
+      !Number.isInteger(bedrooms) || !Number.isInteger(bathrooms)) {
       setMessage("Enter valid property details."); return;
     }
     setBusy(true);
@@ -25,7 +32,8 @@ export function CreatePropertyForm() {
       const { data: profile } = await supabase.from("profiles").select("role").eq("id",user.id).single();
       if (profile?.role !== "landlord") throw new Error("Only landlords can list properties.");
       const { error } = await supabase.from("properties").insert({
-        title, address, city, rent, landlord_id: user.id,
+        title, address, city, rent, type, bedrooms, bathrooms, area,
+        status: "vacant", landlord_id: user.id,
       });
       if (error) throw error;
       setMessage("Property created.");
@@ -39,6 +47,14 @@ export function CreatePropertyForm() {
     <label className="block">Title<input name="title" required maxLength={150} className="block w-full rounded border p-2"/></label>
     <label className="block">Street address<input name="address" required className="block w-full rounded border p-2"/></label>
     <label className="block">City<input name="city" required className="block w-full rounded border p-2"/></label>
+    <label className="block">Property type<select name="type" className="block w-full rounded border p-2">
+      <option>Apartment</option><option>House</option><option>Room</option><option>Commercial</option>
+    </select></label>
+    <div className="grid grid-cols-3 gap-3">
+      <label>Bedrooms<input name="bedrooms" type="number" min="0" step="1" defaultValue="1" className="block w-full rounded border p-2"/></label>
+      <label>Bathrooms<input name="bathrooms" type="number" min="0" step="1" defaultValue="1" className="block w-full rounded border p-2"/></label>
+      <label>Area (sq ft)<input name="area" type="number" min="0" step="1" defaultValue="500" className="block w-full rounded border p-2"/></label>
+    </div>
     <label className="block">Monthly rent (PKR)<input name="rent" type="number" min="1" step="1" required className="block w-full rounded border p-2"/></label>
     <button disabled={busy} className="rounded bg-primary px-5 py-3 text-primary-foreground disabled:opacity-50">
       {busy ? "Saving..." : "Create listing"}</button>
