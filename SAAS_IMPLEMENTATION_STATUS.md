@@ -46,3 +46,9 @@ these as real user or financial data. The new routes explicitly query Supabase.
 - Proposed focused mitigation: supabase/migrations/20261026_profiles_emergency_grants_proposed.sql; **not applied**.
 - Read-only effective-permission verification: supabase/verify_profiles_lockdown_readonly.sql.
 - Before rollout: stage/backup/test signup provisioning, name/phone edit, role escalation prevention, and harden handle_new_user metadata. Avoid production writes without a reviewed plan.
+
+## Security work 2026-10-29
+- New staged-only consolidated patch: `supabase/migrations/20261029_profiles_security_bundle_proposed.sql` pairs safe signup trigger with strict client profile grants in one transaction; NOT APPLIED.
+- Prerequisite metadata inspection: `supabase/preflight_profiles_security_bundle_readonly.sql` checks auth signup trigger, function owner/security, constraints and UPDATE policies without accessing user records.
+- Do not stack all three profile migrations without reconciliation: use one reviewed migration path, after staging backup/tests.
+- Database integration tests, admin CNIC review, and messaging v2 remain blocked until staging is available.
