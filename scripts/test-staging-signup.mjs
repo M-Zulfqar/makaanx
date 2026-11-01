@@ -16,8 +16,9 @@ if (!url || !key) {
   process.exit(1);
 }
 const hostname = new URL(url).hostname;
-if (hostname !== 'ficudncgevvxsbjscrk.supabase.co') {
-  console.error('Safety check failed: unexpected Supabase project hostname:', hostname);
+const expectedHostname = process.env.STAGING_EXPECTED_HOST;
+if (!expectedHostname || hostname !== expectedHostname || !hostname.endsWith('.supabase.co')) {
+  console.error('Safety check failed. Confirm STAGING_EXPECTED_HOST matches the staging project hostname:', hostname);
   process.exit(1);
 }
 const email = process.env.STAGING_TEST_EMAIL;
