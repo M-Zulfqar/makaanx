@@ -1,7 +1,7 @@
 -- PROPOSED ONLY: DO NOT RUN without staging review and backup.
 -- Administrator read access to profiles and private CNIC objects.
 -- This migration intentionally DOES NOT approve/reject identities.
--- Review against current policies and test with tenant, landlord, admin sessions.
+-- Reviewed against staging metadata preflight: profiles RLS and storage.objects RLS enabled;\n-- profiles_select_own and profiles_update_own remain; storage has cnic_owner_insert only.\n-- Existing RPC makaanx_submit_cnic(document_path text) is SECURITY DEFINER owned by postgres.\n-- This review is NOT an execution or authorization test.\n-- Apply only after backup and isolated staging role tests.
 BEGIN;
 
 CREATE OR REPLACE FUNCTION public.makaanx_is_admin()
