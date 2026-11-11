@@ -1,6 +1,6 @@
 -- DRAFT ONLY: do not execute until staging backup, review, and authorization tests.
 -- Depends on 20261112_admin_verification_proposed.sql.
--- Existing profile status values and constraints MUST be verified first.
+-- Staging check (2026-11-12): only profiles_role_check was found; no\n-- verification_status CHECK constraint. Other triggers/permissions remain untested.
 -- This migration does not expose documents or add any UI action.
 BEGIN;
 
@@ -74,7 +74,7 @@ GRANT EXECUTE ON FUNCTION public.makaanx_review_identity(uuid, text)
 COMMIT;
 
 -- Mandatory before enabling any UI:
--- 1. Verify profiles.verification_status CHECK constraints allow 'rejected' and 'verified'.
+-- 1. CHECK constraint inspection completed; still verify triggers and status semantics.
 -- 2. Verify function ownership and existing RPCs; check direct UPDATE grants remain denied.
 -- 3. Verify admin has securely inspected the actual private document.
 -- 4. Test tenant/landlord/anon denial; admin success; duplicate and self-review rejection.
