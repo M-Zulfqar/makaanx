@@ -76,7 +76,7 @@ COMMIT;
 
 -- Mandatory before enabling any UI:
 -- 1. Staging confirmed no verification_status CHECK and no user-defined\n--    public.profiles triggers; still verify status semantics and privileges.
--- 2. Verify function ownership and existing RPCs; check direct UPDATE grants remain denied.
+-- 2. Staging confirmed authenticated UPDATE privilege is false for role,\n--    verification_status, verification_score, trust_score, and cnic_path.\n--    Still verify function ownership and existing RPC authorization.
 -- 3. Verify admin has securely inspected the actual private document.
 -- 4. Test tenant/landlord/anon denial; admin success; duplicate and self-review rejection.
 -- 5. Verify audit insert and status update rollback together on failure.
