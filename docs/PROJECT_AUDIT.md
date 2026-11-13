@@ -231,3 +231,20 @@ migration, security/rollback analysis and demo procedure are documented in
 duplicate prevention, direct-API RLS/grants/transition enforcement and delete-history
 constraints remain unverified database release gates. The admin diagnostic and
 unresolved six-versus-one issue remain intact; no administrator policy was changed.
+
+
+## Milestone 4 administration — 14 November 2026
+
+Read-only administrator properties, scoped analytics and reports readiness routes
+are now implemented with server role checks, permitted owner information and
+explicit coverage/sample labels. Sidebar links are restored only for those routes.
+Fake settings health/storage/backup/save states were removed. Verification counts
+exclude non-applicant roles and use exact submitted counts separately from the
+limited queue. No identity viewing/moderation write is enabled.
+
+The one-of-six issue remains unresolved; neither helper truth nor query success
+is used as proof of global visibility. Minimal read-only evidence and the ordered
+staging guide are prepared. Report tables are unconfirmed, so the page is honest
+about unavailable configuration. The fresh-table/RLS/creation-audit proposal and
+locked empty-only rollback have not been executed. Detailed code/mock/real-staging
+status is in `ADMIN_MANAGEMENT_MILESTONE.md`.

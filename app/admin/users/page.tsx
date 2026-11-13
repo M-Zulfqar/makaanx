@@ -1,16 +1,8 @@
-import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { administratorClient } from "@/lib/admin/server";
 export const dynamic = "force-dynamic";
 
 export default async function AdminUsersPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return <main className="p-8"><Link href="/auth/login">Sign in</Link></main>;
-  const { data: admin, error: roleError } = await supabase.from("profiles")
-    .select("role").eq("id", user.id).maybeSingle();
-  if (roleError || admin?.role !== "admin") {
-    return <main className="p-8" role="alert">Administrator access required.</main>;
-  }
+  const supabase = await administratorClient();
   const { data: users, error } = await supabase.from("profiles")
     .select("id,full_name,role,verification_status")
     .order("id").limit(100);
@@ -21,7 +13,7 @@ export default async function AdminUsersPage() {
       under the current database policies. Platform-wide access requires
       reviewed administrator RLS rules.
     </p>
-    {error && <p role="alert">Unable to load users: {error.message}</p>}
+    {error && <p role="alert">Unable to load users: {"Check profile permissions or try again."}</p>}
     {!error && !users?.length && <p>No accessible user profiles found.</p>}
     <div className="space-y-3">
       {users?.map(person => <article key={person.id} className="rounded border p-4">

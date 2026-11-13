@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { Bath, BedDouble, Building2, MapPin, Ruler } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -42,7 +43,7 @@ export function RentalPagination({ base, filters, count }: { base: string; filte
       {filters.page < pages && <Button asChild variant="outline"><Link href={searchHref(base, filters, filters.page + 1)}>Next</Link></Button>}</div>
   </nav>;
 }
-export function RentalFilters({ base, filters }: { base: string; filters: RentalSearch }) {
+export function RentalFilters({ base, filters, children }: { base: string; filters: RentalSearch; children?: ReactNode }) {
   const input = "h-10 min-w-0 w-full rounded-lg border bg-background px-3 text-sm";
   return <form action={base} method="get" className="grid gap-3 rounded-2xl border bg-card p-5 sm:grid-cols-2 lg:grid-cols-4">
     <label className="space-y-1 text-sm">Search title<input className={input} name="q" maxLength={100} defaultValue={filters.q} placeholder="Apartment, house…"/></label>
@@ -52,6 +53,7 @@ export function RentalFilters({ base, filters }: { base: string; filters: Rental
     <label className="space-y-1 text-sm">Minimum rent (PKR)<input className={input} name="min" type="number" min={0} max={1_000_000_000} defaultValue={filters.min ?? ""}/></label>
     <label className="space-y-1 text-sm">Maximum rent (PKR)<input className={input} name="max" type="number" min={0} max={1_000_000_000} defaultValue={filters.max ?? ""}/></label>
     <label className="space-y-1 text-sm">Sort by<select className={input} name="sort" defaultValue={filters.sort}><option value="newest">Newest first</option><option value="rent_low">Rent: low to high</option><option value="rent_high">Rent: high to low</option></select></label>
+    {children}
     <div className="flex items-end gap-3"><Button type="submit">Search</Button><Link href={base} className="pb-2 text-sm underline">Reset</Link></div>
   </form>;
 }
