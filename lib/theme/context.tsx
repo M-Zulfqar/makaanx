@@ -1,6 +1,8 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useSyncExternalStore, useEffect, type ReactNode } from "react";
+
+import { createBrowserPreference } from "@/lib/browser-preference";
 
 export type Theme = "light" | "dark" | "realestate" | "midnight";
 
@@ -19,53 +21,32 @@ const themes: { value: Theme; label: string; icon: string }[] = [
   { value: "midnight", label: "Midnight", icon: "stars" },
 ];
 
+const preference = createBrowserPreference<Theme>(
+  "makaanx-theme", "light",
+  (value): value is Theme => themes.some(theme => theme.value === value),
+  () => window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light",
+);
+
+function subscribeTheme(listener: () => void) {
+  const unsubscribe = preference.subscribe(listener);
+  const media = window.matchMedia("(prefers-color-scheme: dark)");
+  media.addEventListener("change", listener);
+  return () => { unsubscribe(); media.removeEventListener("change", listener); };
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("light");
-  const [mounted, setMounted] = useState(false);
-
-  const setTheme = useCallback((newTheme: Theme) => {
-    setThemeState(newTheme);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("makaanx-theme", newTheme);
-      
-      // Remove all theme classes
-      document.documentElement.classList.remove("dark", "theme-realestate", "theme-midnight");
-      
-      // Add appropriate classes
-      if (newTheme === "dark") {
-        document.documentElement.classList.add("dark");
-      } else if (newTheme === "realestate") {
-        document.documentElement.classList.add("theme-realestate");
-      } else if (newTheme === "midnight") {
-        document.documentElement.classList.add("theme-midnight");
-      }
-    }
-  }, []);
-
+  const theme = useSyncExternalStore(subscribeTheme, preference.getSnapshot, preference.getServerSnapshot);
   useEffect(() => {
-    setMounted(true);
-    const savedTheme = localStorage.getItem("makaanx-theme") as Theme | null;
-    if (savedTheme && themes.some(t => t.value === savedTheme)) {
-      setTheme(savedTheme);
-    } else {
-      // Check system preference
-      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      if (prefersDark) {
-        setTheme("dark");
-      }
-    }
-  }, [setTheme]);
+    const root = document.documentElement;
+    root.classList.remove("dark", "theme-realestate", "theme-midnight");
+    if (theme === "dark") root.classList.add("dark");
+    if (theme === "realestate") root.classList.add("theme-realestate");
+    if (theme === "midnight") root.classList.add("theme-midnight");
+  }, [theme]);
 
-  // Prevent flash of incorrect theme
-  if (!mounted) {
-    return null;
-  }
-
-  return (
-    <ThemeContext.Provider value={{ theme, setTheme, themes }}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={{ theme, setTheme: preference.set, themes }}>
+    {children}
+  </ThemeContext.Provider>;
 }
 
 export function useTheme() {

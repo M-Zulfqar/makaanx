@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Inter } from 'next/font/google'
-import { Geist_Mono } from 'next/font/google'
+import { Noto_Nastaliq_Urdu, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { Providers } from '@/components/providers'
 import './globals.css'
@@ -9,6 +9,8 @@ const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
 });
+
+const notoUrdu = Noto_Nastaliq_Urdu({ subsets: ["arabic"], weight: ["400", "500", "600", "700"], variable: "--font-noto-urdu" });
 
 const geistMono = Geist_Mono({ 
   subsets: ["latin"],
@@ -72,13 +74,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link 
-          href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;500;600;700&display=swap" 
-          rel="stylesheet" 
-        />
-      </head>
-      <body className={`${inter.variable} ${geistMono.variable} font-sans antialiased`} suppressHydrationWarning>
+      <body className={`${inter.variable} ${geistMono.variable} ${notoUrdu.variable} font-sans antialiased`} suppressHydrationWarning>
         <Providers>
           {children}
         </Providers>

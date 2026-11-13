@@ -1,5 +1,6 @@
 "use client"
 
+import NextImage from "next/image";
 import { useState } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
@@ -238,7 +239,7 @@ export default function PropertyDetailsPage() {
                 className="relative rounded-2xl overflow-hidden"
               >
                 <div className="aspect-[16/10] relative">
-                  <img
+                  <NextImage width={1200} height={750}
                     src={property.images[currentImageIndex]}
                     alt={property.title}
                     className="object-cover w-full h-full"
@@ -316,7 +317,7 @@ export default function PropertyDetailsPage() {
                           : "border-transparent opacity-60 hover:opacity-100"
                       }`}
                     >
-                      <img
+                      <NextImage width={96} height={64}
                         src={img}
                         alt={`View ${index + 1}`}
                         className="w-full h-full object-cover"

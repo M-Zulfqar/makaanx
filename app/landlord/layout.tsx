@@ -1,5 +1,6 @@
 "use client"
 
+import { useLogout } from "@/hooks/use-logout";
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -58,6 +59,7 @@ const navigation = [
 
 export default function LandlordLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { logout, loggingOut } = useLogout()
   const pathname = usePathname()
   const { t, language, setLanguage } = useI18n()
   const { theme, setTheme } = useTheme()
@@ -184,10 +186,8 @@ export default function LandlordLayout({ children }: { children: React.ReactNode
             <Button 
               variant="ghost" 
               className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive"
-              onClick={() => {
-                toast.success("Logged out successfully");
-                window.location.href = "/auth/login";
-              }}
+              disabled={loggingOut}
+              onClick={logout}
             >
               <LogOut className="h-5 w-5" />
               Log Out
@@ -321,7 +321,7 @@ export default function LandlordLayout({ children }: { children: React.ReactNode
                 <DropdownMenuItem>Billing</DropdownMenuItem>
                 <DropdownMenuItem>Settings</DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive">Log out</DropdownMenuItem>
+                <DropdownMenuItem disabled={loggingOut} onClick={logout} className="text-destructive">Log out</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

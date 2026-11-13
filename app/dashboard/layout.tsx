@@ -1,5 +1,6 @@
 "use client";
 
+import { useLogout } from "@/hooks/use-logout";
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -66,6 +67,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const { logout, loggingOut } = useLogout()
   const pathname = usePathname();
   const { language, setLanguage, t, isRtl } = useI18n();
   const { theme, setTheme, themes } = useTheme();
@@ -475,10 +477,8 @@ export default function DashboardLayout({
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   className="text-destructive cursor-pointer"
-                  onClick={() => {
-                    toast.success("Logged out successfully");
-                    window.location.href = "/auth/login";
-                  }}
+                  disabled={loggingOut}
+                  onClick={logout}
                 >
                   <LogOut className="h-4 w-4 mr-2" />
                   Logout

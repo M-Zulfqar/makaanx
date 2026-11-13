@@ -1,5 +1,6 @@
 "use client"
 
+import { useLogout } from "@/hooks/use-logout";
 import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -7,10 +8,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import {
   LayoutDashboard,
   Users,
-  Building2,
   Shield,
-  BarChart3,
-  MessageSquare,
   Settings,
   Bell,
   LogOut,
@@ -18,8 +16,6 @@ import {
   X,
   ChevronDown,
   Search,
-  AlertTriangle,
-  FileText,
   Sun,
   Moon,
 } from "lucide-react"
@@ -39,48 +35,22 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { useTheme } from "@/lib/theme/context"
 import { cn } from "@/lib/utils"
 
 const navigation = [
   { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
-  { name: "Users", href: "/admin/users", icon: Users, badge: 12 },
-  { name: "Properties", href: "/admin/properties", icon: Building2 },
-  { name: "Verifications", href: "/admin/verifications", icon: Shield, badge: 8 },
-  { name: "Reports", href: "/admin/reports", icon: AlertTriangle, badge: 3 },
-  { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
-  { name: "Messages", href: "/admin/messages", icon: MessageSquare },
-  { name: "Logs", href: "/admin/logs", icon: FileText },
+  { name: "Users", href: "/admin/users", icon: Users },
+  { name: "Verifications", href: "/admin/verifications", icon: Shield },
   { name: "Settings", href: "/admin/settings", icon: Settings },
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { logout, loggingOut } = useLogout()
   const pathname = usePathname()
   const { theme, setTheme } = useTheme()
-
-  const [notifications, setNotifications] = useState([
-    { id: 1, type: "user", title: "New User Registrations", message: "12 new users in the last hour", time: "5 min ago", read: false },
-    { id: 2, type: "flag", title: "Property Flagged", message: "Suspicious listing reported in DHA", time: "30 min ago", read: false },
-    { id: 3, type: "verify", title: "Verification Pending", message: "8 CNIC verifications need review", time: "1 hour ago", read: false },
-    { id: 4, type: "fraud", title: "Fraud Alert", message: "Duplicate account detected", time: "2 hours ago", read: true },
-    { id: 5, type: "system", title: "System Update", message: "Backup completed successfully", time: "5 hours ago", read: true },
-  ])
-
-  const unreadCount = notifications.filter(n => !n.read).length
-
-  const markAsRead = (id: number) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
-    toast.success("Notification marked as read")
-  }
-
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
-    toast.success("All notifications marked as read")
-  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -134,10 +104,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <AvatarFallback>SA</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-foreground truncate">Super Admin</p>
-                <p className="text-xs text-muted-foreground">Full Access</p>
+                <p className="font-semibold text-foreground truncate">Administrator</p>
+                <p className="text-xs text-muted-foreground">Permissions enforced by database</p>
               </div>
-              <Badge className="bg-destructive text-destructive-foreground">Root</Badge>
+              <Badge className="bg-destructive text-destructive-foreground">Admin</Badge>
             </div>
           </div>
 
@@ -158,45 +128,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 >
                   <item.icon className="h-5 w-5" />
                   <span className="flex-1">{item.name}</span>
-                  {item.badge && (
-                    <Badge
-                      variant="secondary"
-                      className={cn(
-                        "h-5 min-w-[20px] px-1.5 text-xs",
-                        isActive ? "bg-destructive-foreground/20 text-destructive-foreground" : ""
-                      )}
-                    >
-                      {item.badge}
-                    </Badge>
-                  )}
                 </Link>
               )
             })}
           </nav>
 
-          {/* System Status */}
-          <div className="p-4 border-t border-border">
-            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-sm font-medium text-emerald-600">System Online</span>
-              </div>
-              <div className="text-xs text-muted-foreground">
-                <p>API: 99.9% uptime</p>
-                <p>Database: Healthy</p>
-              </div>
-            </div>
-          </div>
+          <p className="p-4 text-xs text-muted-foreground">System monitoring is not connected.</p>
 
           {/* Logout */}
           <div className="p-4 border-t border-border">
             <Button 
               variant="ghost" 
               className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive"
-              onClick={() => {
-                toast.success("Logged out successfully");
-                window.location.href = "/auth/login";
-              }}
+              disabled={loggingOut}
+              onClick={logout}
             >
               <LogOut className="h-5 w-5" />
               Log Out
@@ -223,7 +168,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search users, properties, reports..."
+                placeholder="Search is not connected"
+                disabled
                 className="pl-10 bg-muted/50 border-0"
               />
             </div>
@@ -239,90 +185,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>
 
-            {/* Alerts */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative">
-                  <AlertTriangle className="h-5 w-5 text-amber-500" />
-                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-amber-500 text-[10px] font-medium text-white flex items-center justify-center">
-                    3
-                  </span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80">
-                <DropdownMenuLabel>System Alerts</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem className="flex flex-col items-start gap-1 p-3">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-amber-500" />
-                    <p className="font-medium">High CPU Usage</p>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Server cluster 2 at 85%</p>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="flex flex-col items-start gap-1 p-3">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-red-500" />
-                    <p className="font-medium">Failed Verifications</p>
-                  </div>
-                  <p className="text-xs text-muted-foreground">8 pending NADRA verifications</p>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            {/* Notifications */}
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative">
+                <Button variant="ghost" size="icon" aria-label="Notifications">
                   <Bell className="h-5 w-5" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground flex items-center justify-center">
-                      {unreadCount}
-                    </span>
-                  )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent align="end" className="w-80 p-0">
-                <div className="flex items-center justify-between p-4 border-b border-border">
-                  <h3 className="font-semibold">Notifications</h3>
-                  {unreadCount > 0 && (
-                    <Button variant="ghost" size="sm" onClick={markAllAsRead} className="text-xs h-auto py-1">
-                      Mark all read
-                    </Button>
-                  )}
-                </div>
-                <ScrollArea className="h-[300px]">
-                  <div className="divide-y divide-border">
-                    {notifications.map((notification) => (
-                      <button
-                        key={notification.id}
-                        onClick={() => markAsRead(notification.id)}
-                        className={cn(
-                          "w-full flex flex-col items-start gap-1 p-4 text-left hover:bg-muted/50 transition-colors",
-                          !notification.read && "bg-primary/5"
-                        )}
-                      >
-                        <div className="flex items-center gap-2 w-full">
-                          <p className={cn("font-medium text-sm", !notification.read && "font-semibold")}>
-                            {notification.title}
-                          </p>
-                          {!notification.read && (
-                            <span className="w-2 h-2 bg-destructive rounded-full ml-auto" />
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">{notification.message}</p>
-                        <p className="text-xs text-muted-foreground">{notification.time}</p>
-                      </button>
-                    ))}
-                  </div>
-                </ScrollArea>
-                <div className="p-2 border-t border-border">
-                  <Button variant="ghost" className="w-full text-sm" asChild>
-                    <Link href="/admin/settings">
-                      <Settings className="h-4 w-4 mr-2" />
-                      Notification Settings
-                    </Link>
-                  </Button>
-                </div>
+              <PopoverContent align="end" className="w-80">
+                <h3 className="font-semibold">Notifications</h3>
+                <p className="mt-2 text-sm text-muted-foreground">Notification delivery is not connected.</p>
               </PopoverContent>
             </Popover>
 
@@ -340,11 +211,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <DropdownMenuContent align="end">
                 <DropdownMenuLabel>Admin Account</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>Profile</DropdownMenuItem>
-                <DropdownMenuItem>Security</DropdownMenuItem>
-                <DropdownMenuItem>Audit Log</DropdownMenuItem>
+                <DropdownMenuItem asChild><Link href="/admin/settings">Settings preview</Link></DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive">Log out</DropdownMenuItem>
+                <DropdownMenuItem disabled={loggingOut} onClick={logout} className="text-destructive">Log out</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

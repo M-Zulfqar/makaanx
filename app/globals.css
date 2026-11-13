@@ -165,7 +165,7 @@
 @theme inline {
   --font-sans: var(--font-inter), 'Inter', system-ui, sans-serif;
   --font-mono: 'Geist Mono', 'Geist Mono Fallback', monospace;
-  --font-urdu: 'Noto Nastaliq Urdu', serif;
+  --font-urdu: var(--font-noto-urdu), serif;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -230,7 +230,7 @@
 
 /* Urdu Font */
 .font-urdu {
-  font-family: 'Noto Nastaliq Urdu', serif;
+  font-family: var(--font-noto-urdu), serif;
   line-height: 2;
 }
 

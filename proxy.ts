@@ -13,6 +13,11 @@ export async function proxy(request: NextRequest) {
     redirect.search = "";
     return NextResponse.redirect(redirect);
   }
+  function redirectWithCookies(destination: URL) {
+    const redirectResponse = NextResponse.redirect(destination);
+    response.cookies.getAll().forEach(cookie => redirectResponse.cookies.set(cookie));
+    return redirectResponse;
+  }
   const supabase = createServerClient(url, key, {
     cookies: {
       getAll() { return request.cookies.getAll(); },
@@ -29,7 +34,7 @@ export async function proxy(request: NextRequest) {
     const redirect = request.nextUrl.clone();
     redirect.pathname = "/auth/login";
     redirect.searchParams.set("next", pathname);
-    return NextResponse.redirect(redirect);
+    return redirectWithCookies(redirect);
   }
   if (user && (/^\/(dashboard|landlord|admin)(\/|$)/).test(pathname)) {
     const { data: profile, error } = await supabase.from("profiles").select("role").eq("id", user.id).single();
@@ -38,7 +43,7 @@ export async function proxy(request: NextRequest) {
       const redirect = request.nextUrl.clone();
       redirect.pathname = "/auth/unauthorized";
       redirect.search = "";
-      return NextResponse.redirect(redirect);
+      return redirectWithCookies(redirect);
     }
   }
   return response;

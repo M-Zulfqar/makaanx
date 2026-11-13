@@ -1,5 +1,6 @@
 "use client"
 
+import NextImage from "next/image";
 import { useState } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
@@ -169,7 +170,7 @@ export function FeaturedProperties() {
               <Link href={`/properties/${property.id}`}>
                 <Card className="group overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer h-full">
                   <div className="relative aspect-[4/3] overflow-hidden">
-                    <img
+                    <NextImage width={640} height={480}
                       src={property.image}
                       alt={property.title}
                       className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110"

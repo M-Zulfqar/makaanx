@@ -1,5 +1,6 @@
 "use client"
 
+import NextImage from "next/image";
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -398,7 +399,7 @@ export default function LandlordPropertiesPage() {
               >
                 <Card className="group overflow-hidden hover:shadow-lg transition-all duration-300">
                   <div className="relative aspect-[4/3] overflow-hidden">
-                    <img
+                    <NextImage width={640} height={480}
                       src={property.image}
                       alt={property.title}
                       className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
@@ -529,7 +530,7 @@ export default function LandlordPropertiesPage() {
                     exit={{ opacity: 0 }}
                     className="flex items-center gap-4 p-4 hover:bg-muted/50 transition-colors"
                   >
-                    <img
+                    <NextImage width={112} height={80}
                       src={property.image}
                       alt={property.title}
                       className="h-20 w-28 object-cover rounded-lg"
