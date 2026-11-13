@@ -211,3 +211,23 @@ files explicitly use READ ONLY transactions. Both package locks were synchronize
 to prevent npm/pnpm selecting different declared dependency versions. Full pnpm
 runtime/build parity is not claimed; npm remains the validated CI installer.
 See the latest validation record in `IMPLEMENTATION_PLAN.md`.
+
+
+## Milestone 3 — Core rental workflows (14 November 2026)
+
+The feature branch starts from c008b09 while PR #2 remains unmerged. Public and
+protected property catalogs/details and homepage listing cards now use shared
+live readers instead of demonstration arrays. Landlord create/edit/delete,
+tenant applications, landlord decisions, and favorites use strict, cookie-bound
+server actions with role/ownership checks and returned-row confirmation. Searches,
+filters, stable sorting and pagination are implemented. Live summary counts are
+separate from limited recent-history lists; fake landlord charts/revenue and shell
+portfolio/payment notifications were removed.
+
+The initial inventory above is historical baseline evidence. Current route coverage,
+feature-by-feature status, exact column/interface evidence, proposed uniqueness
+migration, security/rollback analysis and demo procedure are documented in
+`CORE_RENTAL_WORKFLOWS.md`. No rental schema/policy deployment is claimed. Atomic
+duplicate prevention, direct-API RLS/grants/transition enforcement and delete-history
+constraints remain unverified database release gates. The admin diagnostic and
+unresolved six-versus-one issue remain intact; no administrator policy was changed.

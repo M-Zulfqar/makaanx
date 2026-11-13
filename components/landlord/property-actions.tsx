@@ -1,41 +1,20 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/browser";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { deletePropertyAction, decideAction } from "@/lib/rentals/actions";
+import { useRentalMutation } from "@/hooks/use-rental-mutation";
 type Props = { propertyId?: string; applicationId?: string; applicationStatus?: string };
-export function LandlordPropertyActions({propertyId,applicationId,applicationStatus}:Props) {
-  const router=useRouter();
-  const [busy,setBusy]=useState(false);
-  const [message,setMessage]=useState("");
-  async function run(action:"delete"|"approved"|"rejected") {
-    if (busy) return;
-    if (action==="delete" && !window.confirm("Delete this property and related applications?")) return;
-    setBusy(true);
-    try {
-      const supabase=createClient();
-      const { data:{user},error:authError }=await supabase.auth.getUser();
-      if (authError || !user) throw new Error("Sign in first.");
-      if (action==="delete" && propertyId) {
-        const {error}=await supabase.from("properties").delete().eq("id",propertyId).eq("landlord_id",user.id);
-        if(error) throw error;
-      } else if (applicationId && action!=="delete") {
-        const {error}=await supabase.from("applications").update({status:action}).eq("id",applicationId);
-        if(error) throw error;
-      } else throw new Error("Invalid operation.");
-      setMessage("Saved.");
-      router.refresh();
-    } catch(error) { setMessage(error instanceof Error?error.message:"Operation failed."); }
-    finally {setBusy(false);}
-  }
-  return <div className="flex flex-wrap gap-2 items-center">
-    {propertyId && <button type="button" disabled={busy} onClick={()=>run("delete")}
-      className="rounded border px-3 py-2">Delete listing</button>}
-    {applicationId && applicationStatus==="pending" && <>
-      <button type="button" disabled={busy} onClick={()=>run("approved")}
-        className="rounded border px-3 py-2">Approve</button>
-      <button type="button" disabled={busy} onClick={()=>run("rejected")}
-        className="rounded border px-3 py-2">Reject</button>
+export function LandlordPropertyActions({ propertyId, applicationId, applicationStatus }: Props) {
+  const { run, busy, feedback, failed } = useRentalMutation();
+  return <div className="flex flex-wrap items-center gap-2">
+    {propertyId && <><Button variant="outline" asChild><Link href={`/landlord/properties/${propertyId}/edit`}>Edit listing</Link></Button>
+      <Button variant="destructive" disabled={busy} onClick={() => {
+        if (window.confirm("Delete this listing? Listings with applications must be kept for rental history.")) void run(() => deletePropertyAction(propertyId));
+      }}>{busy ? "Saving…" : "Delete listing"}</Button></>}
+    {applicationId && applicationStatus === "pending" && <>
+      <Button disabled={busy} onClick={() => run(() => decideAction(applicationId, "approved"))}>Approve</Button>
+      <Button disabled={busy} variant="outline" onClick={() => run(() => decideAction(applicationId, "rejected"))}>Reject</Button>
     </>}
-    <span role="status" className="text-sm">{message}</span>
+    {feedback && <p role={failed ? "alert" : "status"} className="w-full text-sm">{feedback}</p>}
   </div>;
 }
