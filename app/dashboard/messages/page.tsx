@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   Search,
@@ -262,7 +262,7 @@ const initialMessages: Record<number, Message[]> = {
 }
 
 export default function MessagesPage() {
-  const [conversations, setConversations] = useState(initialConversations)
+  const [conversations, setConversations] = useState(() => initialConversations.map(c => c.id === initialConversations[0].id ? { ...c, unread: 0 } : c))
   const [selectedConversation, setSelectedConversation] = useState<Conversation>(initialConversations[0])
   const [allMessages, setAllMessages] = useState<Record<number, Message[]>>(initialMessages)
   const [messageText, setMessageText] = useState("")
@@ -272,7 +272,7 @@ export default function MessagesPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const currentMessages = allMessages[selectedConversation.id] || []
+  const currentMessages = useMemo(() => allMessages[selectedConversation.id] || [], [allMessages, selectedConversation.id])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -281,13 +281,6 @@ export default function MessagesPage() {
   useEffect(() => {
     scrollToBottom()
   }, [currentMessages])
-
-  useEffect(() => {
-    // Clear unread when selecting conversation
-    setConversations(prev => 
-      prev.map(c => c.id === selectedConversation.id ? { ...c, unread: 0 } : c)
-    )
-  }, [selectedConversation.id])
 
   const filteredConversations = conversations.filter((conv) =>
     conv.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -427,6 +420,7 @@ export default function MessagesPage() {
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.99 }}
                 onClick={() => {
+                  setConversations(prev => prev.map(c => c.id === conversation.id ? { ...c, unread: 0 } : c))
                   setSelectedConversation(conversation)
                   setShowMobileChat(true)
                 }}

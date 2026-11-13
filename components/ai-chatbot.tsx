@@ -128,12 +128,13 @@ What would you like help with today?`
 }
 
 export function AIChatbot({ isOpen, onClose }: AIChatbotProps) {
+  const nextMessageId = useRef(2)
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 1,
       role: "assistant",
       content: "Hello! I am MakaanX AI, your personal rental assistant. How can I help you find your perfect home today?",
-      timestamp: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true }),
+      timestamp: "Now",
     },
   ])
   const [inputText, setInputText] = useState("")
@@ -193,13 +194,13 @@ Would you like me to help you with something more specific? Try asking about:
 - Landlord ratings`
   }
 
-  const handleSend = () => {
-    if (!inputText.trim()) return
+  const handleSend = (text: string) => {
+    if (!text.trim()) return
 
     const userMessage: Message = {
-      id: Date.now(),
+      id: nextMessageId.current++,
       role: "user",
-      content: inputText.trim(),
+      content: text.trim(),
       timestamp: getCurrentTime(),
     }
 
@@ -211,7 +212,7 @@ Would you like me to help you with something more specific? Try asking about:
     setTimeout(() => {
       setIsTyping(false)
       const aiResponse: Message = {
-        id: Date.now() + 1,
+        id: nextMessageId.current++,
         role: "assistant",
         content: getAIResponse(userMessage.content),
         timestamp: getCurrentTime(),
@@ -221,14 +222,13 @@ Would you like me to help you with something more specific? Try asking about:
   }
 
   const handleSuggestedPrompt = (prompt: string) => {
-    setInputText(prompt)
-    setTimeout(() => handleSend(), 100)
+    handleSend(prompt)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
-      handleSend()
+      handleSend(inputText)
     }
   }
 
@@ -374,7 +374,7 @@ Would you like me to help you with something more specific? Try asking about:
                 />
                 <Button
                   size="icon"
-                  onClick={handleSend}
+                  onClick={() => handleSend(inputText)}
                   disabled={!inputText.trim() || isTyping}
                   className="bg-primary hover:bg-primary/90"
                 >

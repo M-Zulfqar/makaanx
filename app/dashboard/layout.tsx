@@ -478,7 +478,7 @@ export default function DashboardLayout({
                 <DropdownMenuItem 
                   className="text-destructive cursor-pointer"
                   disabled={loggingOut}
-              onClick={logout}
+                  onClick={logout}
                 >
                   <LogOut className="h-4 w-4 mr-2" />
                   Logout

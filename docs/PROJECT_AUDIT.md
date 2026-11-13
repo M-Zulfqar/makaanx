@@ -36,7 +36,7 @@ No database, storage object, deployment, or main branch was changed in this audi
 - Existing GitHub Actions runs npm install, typecheck and a build with dummy public
   configuration. This change adds regression tests. No Vercel configuration or
   deployment credentials are provided locally. npm and pnpm lockfiles coexist;
-  npm is the existing CI path and the lockfile updated by this change.
+  npm is the existing CI path; both lockfiles are now synchronized with the upgraded manifest.
 
 ## Feature inventory
 
@@ -87,63 +87,54 @@ unconnected-service states. Dead profile/security/audit menu items were replaced
 with a settings-preview link. Search is disabled until connected. The generic
 administrator label is not a fetched account identity; avatars remain presentation.
 
-## Administrator sees one of six profiles: evidence and diagnosis
+## Administrator sees one of six profiles: revised evidence and diagnosis
 
-1. The user reports staging holds one admin, one landlord and four tenants. This
-   audit did not independently query or count staging rows.
-2. `app/admin/users/page.tsx` first checks the caller's own profile role, then
-   selects `id,full_name,role,verification_status` from all visible profiles,
-   ordered by id, limited to 100. There is **no own-id filter on the directory
-   query**, no role filter, no one-row limit and no frontend row suppression.
-3. `app/admin/page.tsx` uses an exact head count of profiles, without an id filter.
-4. Both reads use the cookie-bound public-key server client. An application role
-   of `admin` does not change the PostgreSQL API role from `authenticated`, nor
-   confer RLS bypass. An authenticated admin can pass the role guard while seeing
-   only its own row.
-5. `20261101_staging_auth_phase2.sql` grants authenticated SELECT but creates
-   `profiles_select_own USING (auth.uid() = id)`. Under that policy alone, any
-   signed-in account, including the administrator, sees exactly its own profile.
-6. `20261112_admin_profile_read_staging_proposed.sql` explicitly supplies the
-   missing administrator SELECT policy using a SECURITY DEFINER helper. It is
-   marked **NOT APPLIED**. The later verification proposal uses another policy
-   name and also grants CNIC read access; that is a broader, separate capability.
+The owner has now supplied staging evidence for project `ficudncgevvxsxbjscrk`:
+six profiles (one admin, one landlord, four tenants); `makaanx_is_admin()` exists,
+owned by postgres, SECURITY DEFINER=true, authenticated EXECUTE=true and anon
+EXECUTE=false; sensitive profile UPDATE privileges are false; and the
+`makaanx_admin_read_profiles` SELECT policy is present alongside own-read and
+own-update policies. The app still sees one row after signing in again.
+These observations supersede the earlier missing-policy hypothesis. They were
+reported by the owner; this environment has not queried staging independently.
 
-**Conclusion:** the repository establishes that own-profile RLS produces the
-reported result, and excludes a one-row frontend limit as the explanation for
-six records. Missing/effectively inactive admin SELECT access is the leading,
-code-supported diagnosis. The actual staging root cause remains **unconfirmed**
-until deployed policy definitions and the authenticated request's target project
-are inspected. Proposed files and historical comments do not prove what is live.
-A wrong frontend project URL could also produce a different row count; no deployed
-environment variables or authenticated staging session were available to rule it out.
-Cookie loss on redirects is a separately confirmed defect, not proof of the count issue.
+Source evidence remains: the directory query has no own-user filter, role filter
+or one-row limit (it allows 100); the overview uses an exact HEAD count. Both
+use public-key, cookie-bound clients and RLS. An application's `profiles.role`
+value of admin is distinct from the JWT/API role `authenticated`.
 
-### Minimal confirmation and repair gate
+**Current conclusion: root cause is unresolved. Do not assume the migration is
+absent or add another policy.** A wrong build/project, browser/server session
+mismatch, false helper result, wrong policy expression/TO roles/command, restrictive
+policy, relation/schema mismatch or helper execution context needs direct evidence.
+A true helper and an applicable permissive SELECT predicate invoking it, without
+restrictive exclusions, should permit all six rows in the same project/session.
+The observed one-row count means at least one of those assumptions must be checked.
 
-- Verify deployed public URL identifies the intended staging project (do not
-  publish keys, tokens, identities or document paths).
-- Obtain metadata-only output from `supabase/admin_read_access_preflight_readonly.sql`:
-  profiles RLS/FORCE flags, all SELECT policies and roles, helper owner/security,
-  and effective sensitive-column grants. Compare with the repository proposal.
-- With an existing admin session, count visible profiles. Compare with a trusted
-  aggregate-only staging count grouped by role; no private documents needed.
-- If admin SELECT is absent and role mutation is locked down, review the existing
-  **profile-read-only** proposal `20261112_admin_profile_read_staging_proposed.sql`.
-  Obtain explicit database approval before applying it. Do not bundle CNIC access.
-- After approved application, use separate existing admin/tenant/landlord sessions:
-  admin should see six profiles in the reported fixture, tenant/landlord only their
-  own profile, anonymous none. Test forbidden role/status/path mutations and ensure
-  CNIC access is unchanged. Metadata inspection alone is insufficient.
+New `/auth/diagnostics` performs browser and cookie-bound server checks only when
+clicked. Output is limited to project reference, verified JWT role, helper boolean,
+exact visible count and machine error codes. It never returns/logs tokens, users,
+claims, profile rows, emails or CNIC data. Unauthenticated requests cannot execute
+the helper/count; the server diagnostic is private/no-store. Tests verify privacy,
+failure states, role/issuer checks and the true-helper/one-row combination.
 
-Do not disable RLS, replace the public key with service-role credentials, hardcode
-six, remove role guards or relax own-profile policies to mask this problem.
+Prepared, **not executed**, metadata/session scripts:
+`supabase/diagnose_admin_policy_readonly.sql` and
+`supabase/diagnose_admin_session_readonly.sql`. See `ADMIN_ACCESS_DIAGNOSTICS.md`
+for exact usage, limitations and the evidence-to-next-check matrix. SQL-editor
+postgres counts do not reproduce the browser JWT context. Read-only diagnostics
+can be run on an existing approved runtime; deploying this code or changing any
+policy/function/grant still requires explicit approval.
+
+Do not disable RLS, use a service-role client, hardcode six or relax guards to
+mask this problem. Private CNIC viewing remains disabled.
 
 ## Security and data integrity findings
 
 | Priority | Finding / action |
 | --- | --- |
-| P0 | Dependency audit identified critical Next.js 16.2.0 advisories, including proxy bypass. Updated Next and matching ESLint configuration to 16.4.6. Audit now reports no critical findings; Zod 3 remains high and seven transitive lint-tool findings are moderate. Schedule Zod 4 compatibility work before release. |
-| P0 | Deployed profile privilege lockdown is unverified. Historical status notes describe broad INSERT/UPDATE grants; later SQL comments describe hardened staging. Confirm current effective grants and trigger behavior before trusting role-based admin access. Own-row UPDATE policies do not protect privileged columns. |
+| P0 | Dependency audit identified critical Next.js 16.2.0 advisories, including proxy bypass. Updated Next and matching ESLint configuration to 16.4.6. Follow-up upgraded Zod to 4.6.7 and the resolver to 7.0.6, with typed and rendered-form compatibility tests. No production dependency findings remain; seven moderate development-tool findings remain (details below). |
+| P0 | The owner reports sensitive profile UPDATE privileges are false. Full direct-API boundary and signup-trigger tests are still unverified. Historical status notes describe older broad grants and must not be treated as current metadata. Own-row UPDATE policies do not protect privileged columns. |
 | P0 | Proposed SQL files overlap and differ: admin policy names, two audit table designs, two- versus three-argument review RPC overloads. Never apply the directory wholesale. Reconcile a single migration sequence after metadata review. |
 | P0 | No complete schema baseline, database test fixtures or live RLS test evidence. Review property/application/favorites/payment and messaging grants, constraints and ownership separately. Browser role checks do not secure direct API access. |
 | P1 | Logout did not call signOut; sessions survived navigation. Fixed in all three layouts, including landlord/admin dropdowns that previously had no handler. Logout uses local scope (this browser), blocks duplicate clicks and redirects only on success. |
@@ -169,3 +160,54 @@ Next build type checking (removed `ignoreBuildErrors`); executable ESLint setup;
 Vitest regression suite and CI test step; patched Next.js dependencies. SQL proposals were left untouched.
 
 See the validation results and milestone acceptance gates in `IMPLEMENTATION_PLAN.md`.
+
+## PR #2 safe-repair follow-up
+
+All nine original ESLint errors and fourteen warnings were addressed without
+rule disables, inline suppressions or weakening configuration:
+
+- Theme/language and mobile state use `useSyncExternalStore` with stable server
+  snapshots, storage/media subscriptions and cleanup. The provider no longer
+  suppresses all server-rendered content. Preferences survive reloads and work
+  in memory when storage is blocked or quota-limited; cross-tab changes propagate.
+- Carousel reads external API state through subscriptions, initializes controls
+  correctly and unsubscribes both select and reInit events.
+- Demo messages clear unread state at initialization/selection, rather than an
+  effect; current message dependencies are stable. Filter markup is a JSX value,
+  avoiding a newly created component type and remounted controls on each render.
+- Sidebar skeleton variation derives from `useId`, giving stable hydration-safe
+  widths. Chatbot messages use monotonically increasing event-time IDs instead
+  of millisecond timestamps, and the initial greeting has stable text. Suggested
+  prompts send their actual text instead of stale input.
+- Twelve native images became Next Image components with explicit dimensions
+  while retaining their styling. Existing unoptimized image behavior is unchanged.
+  Urdu font loading moved to `next/font` with its CSS variable.
+- GitHub Actions now runs lint with `--max-warnings=0` as a mandatory failing step,
+  alongside regression tests/typecheck/build; no continue-on-error. Repository
+  branch-protection/ruleset settings were not changed by the workflow edit.
+
+### Dependency advisory and diff review
+
+`GHSA-mrhx-c7xc-m3w5` affects Zod versions below 4.6.6: oversized constrained
+collections may exhaust memory. Zod 4.6.7 is pinned; `@hookform/resolvers` 7.0.6
+supports Zod 4 and requires React Hook Form >=7.55 (resolved 7.92.0). No production
+schema imported Zod before this change. Compatibility tests cover nested errors,
+transformed values, asynchronous refinements, oversized arrays, and actual shadcn
+form submission. `FormField` now preserves the transformed-output generic instead
+of silently constraining outputs to input types. The installed tree has no Zod 3.
+
+Seven moderate findings remain in development-only TypeScript-ESLint dependencies,
+rooted in `minimatch` (`GHSA-g3hv-75wg-m249`, affected 7.0.0 through 11.0.0).
+Latest available `typescript-eslint` 8.72.2 still resolves minimatch 10.2.6;
+`npm audit fix --ignore-scripts` did not resolve it. Forcing minimatch 11 beneath
+that dependency would cross its supported major range, so no override was added.
+Upgrade the upstream lint stack when a compatible fixed dependency is available,
+then rerun the same zero-warning gate. Production-only audit has no findings.
+
+The complete PR source/configuration/dependency diff was reviewed, including
+prior logout/cookie repairs. No service key, token logging, identity/document
+retrieval, RLS bypass, migrations or deployment actions were introduced. New SQL
+files explicitly use READ ONLY transactions. Both package locks were synchronized
+to prevent npm/pnpm selecting different declared dependency versions. Full pnpm
+runtime/build parity is not claimed; npm remains the validated CI installer.
+See the latest validation record in `IMPLEMENTATION_PLAN.md`.

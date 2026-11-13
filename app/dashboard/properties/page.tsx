@@ -1,5 +1,6 @@
 "use client";
 
+import NextImage from "next/image";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useI18n } from "@/lib/i18n/context";
@@ -159,7 +160,7 @@ export default function PropertiesPage() {
     return true;
   });
 
-  const FilterPanel = () => (
+  const filterPanel = (
     <div className="space-y-6">
       <div className="space-y-2">
         <Label className={cn(isRtl && "font-urdu")}>{t.properties.budget}</Label>
@@ -273,7 +274,7 @@ export default function PropertiesPage() {
               <SheetTitle>{t.properties.filters}</SheetTitle>
             </SheetHeader>
             <div className="mt-6">
-              <FilterPanel />
+              {filterPanel}
             </div>
           </SheetContent>
         </Sheet>
@@ -299,7 +300,7 @@ export default function PropertiesPage() {
                 <Link href={`/dashboard/properties/${property.id}`}>
                   <Card className="overflow-hidden border-border hover:border-primary/30 transition-all group cursor-pointer">
                     <div className="relative h-48 overflow-hidden">
-                      <img
+                      <NextImage width={640} height={480}
                         src={property.image}
                         alt={property.title}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
@@ -413,7 +414,7 @@ export default function PropertiesPage() {
                   <Card className="hover:border-primary/30 transition-colors cursor-pointer">
                     <CardContent className="p-4">
                       <div className="flex gap-4">
-                        <img
+                        <NextImage width={96} height={96}
                           src={property.image}
                           alt={property.title}
                           className="w-24 h-24 rounded-lg object-cover flex-shrink-0"

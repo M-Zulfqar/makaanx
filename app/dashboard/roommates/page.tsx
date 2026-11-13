@@ -1,5 +1,6 @@
 "use client"
 
+import NextImage from "next/image";
 import { useState } from "react"
 import { motion } from "framer-motion"
 import {
@@ -432,7 +433,7 @@ export default function RoommatesPage() {
             >
               {/* Cover Image */}
               <div className="relative h-40">
-                <img
+                <NextImage width={640} height={320}
                   src={roommate.coverImage}
                   alt={roommate.name}
                   className="w-full h-full object-cover"
@@ -554,7 +555,7 @@ export default function RoommatesPage() {
           {selectedRoommate && (
             <>
               <div className="relative h-48 -mx-6 -mt-6 mb-4">
-                <img
+                <NextImage width={640} height={320}
                   src={selectedRoommate.coverImage}
                   alt={selectedRoommate.name}
                   className="w-full h-full object-cover"

@@ -1,5 +1,6 @@
 "use client"
 
+import NextImage from "next/image";
 import { useState } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
@@ -365,7 +366,7 @@ export default function PropertiesPage() {
                     {view === "grid" ? (
                       <>
                         <div className="relative aspect-[4/3] overflow-hidden">
-                          <img
+                          <NextImage width={640} height={480}
                             src={property.image}
                             alt={property.title}
                             className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-110"
@@ -467,7 +468,7 @@ export default function PropertiesPage() {
                       </>
                     ) : (
                       <div className="flex gap-4 p-4">
-                        <img
+                        <NextImage width={192} height={128}
                           src={property.image}
                           alt={property.title}
                           className="h-32 w-48 object-cover rounded-lg"

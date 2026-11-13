@@ -1,5 +1,6 @@
 "use client";
 
+import NextImage from "next/image";
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { useI18n } from "@/lib/i18n/context";
@@ -180,7 +181,7 @@ export default function PropertyDetailsPage() {
               index === currentImage ? "border-primary" : "border-transparent"
             )}
           >
-            <img src={image} alt="" className="w-full h-full object-cover" />
+            <NextImage width={80} height={80} src={image} alt="" className="w-full h-full object-cover" />
           </button>
         ))}
       </div>

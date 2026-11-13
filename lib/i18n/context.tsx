@@ -1,7 +1,9 @@
 "use client";
 
-import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
+import { createContext, useContext, useSyncExternalStore, useEffect, type ReactNode } from "react";
 import { translations, type Language, type TranslationKeys } from "./translations";
+
+import { createBrowserPreference } from "@/lib/browser-preference";
 
 interface I18nContextType {
   language: Language;
@@ -13,24 +15,17 @@ interface I18nContextType {
 
 const I18nContext = createContext<I18nContextType | undefined>(undefined);
 
+const preference = createBrowserPreference<Language>(
+  "makaanx-language", "en", (value): value is Language => value === "en" || value === "ur",
+);
+
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguageState] = useState<Language>("en");
-
-  const setLanguage = useCallback((lang: Language) => {
-    setLanguageState(lang);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("makaanx-language", lang);
-      document.documentElement.lang = lang;
-      document.documentElement.dir = lang === "ur" ? "rtl" : "ltr";
-    }
-  }, []);
-
+  const language = useSyncExternalStore(preference.subscribe, preference.getSnapshot, preference.getServerSnapshot);
+  const setLanguage = preference.set;
   useEffect(() => {
-    const savedLang = localStorage.getItem("makaanx-language") as Language | null;
-    if (savedLang && (savedLang === "en" || savedLang === "ur")) {
-      setLanguage(savedLang);
-    }
-  }, [setLanguage]);
+    document.documentElement.lang = language;
+    document.documentElement.dir = language === "ur" ? "rtl" : "ltr";
+  }, [language]);
 
   const dir = language === "ur" ? "rtl" : "ltr";
   const isRtl = language === "ur";
