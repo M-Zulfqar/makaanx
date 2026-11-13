@@ -9,7 +9,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "test:browser": "node scripts/browser-smoke.cjs"
+    "test:browser": "node scripts/browser-smoke.cjs",
+    "test:browser:admin": "node scripts/admin-browser-smoke.cjs"
   },
   "dependencies": {
     "@hookform/resolvers": "7.0.6",

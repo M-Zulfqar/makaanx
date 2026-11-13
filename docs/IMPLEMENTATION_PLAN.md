@@ -262,3 +262,40 @@ No staging data or storage writes, accounts, migration execution, merges or
 production deployments. Remaining project completion gates are not disguised as
 implemented database guarantees. Authenticated staging checks require existing
 approved sessions; do not create fixtures in staging without explicit approval.
+
+
+## Milestone 4 administration implementation — 14 November 2026
+
+Branch `feature/admin-management` starts from PR #3 commit 28b935b and targets
+`feature/core-rental-workflows` as a separate stacked draft. PRs #2/#3 remain
+unmerged. See `ADMIN_MANAGEMENT_MILESTONE.md` for the completion matrix and
+`STAGING_SECURITY_VALIDATION.md` for the consolidated ordered validation guide.
+
+Implemented server-authorized read-only properties with search/filter/status/
+sort/pagination, permitted owner names, exact scoped analytics and explicitly
+bounded timestamp/state samples; reports readiness page; restored implemented
+navigation; honest settings readiness. Admin verification metrics/queue exclude
+ineligible roles and distinguish exact submitted counts from the 50-row sample.
+Existing diagnostics, proxy/cookies and administrator policies are unchanged.
+
+Reports schema is not confirmed deployed. A separate proposal, preflight and
+empty-only locked rollback are prepared, not executed. It supplies creation audit
+only and grants no moderation updates. Its live helper/schema/privacy/permission
+prerequisites remain approval gates; the current reports page never queries an
+invented table or claims an empty queue. No SQL or real staging access occurred.
+
+| Check | Milestone 4 actual result |
+| --- | --- |
+| Regression suite | **105 tests passed across 17 files**; existing 79 retained. |
+| TypeScript | **Passed** after production route generation; no type suppressions. |
+| Zero-warning ESLint | **Passed**, 0 errors and 0 warnings. |
+| Production build | **Passed**, Next.js production build with dummy local fixture configuration. |
+| Existing browser smoke | **22 checks passed** against the production build and local read-only fixture. |
+| Administration browser smoke | **21 checks passed**, anonymous/tenant/landlord/admin synthetic sessions only; no live RLS claim. |
+| Dependency audits | Production: **0 findings**. Full: **7 moderate**, development-only baseline; 0 high/critical. No dependency or lockfile changes. |
+| Security/diff review | `git diff --check` passed. Authorization/privacy/query/diff review completed. Existing diagnostics, cookies/proxy and administrator policies unchanged; no SQL executed. |
+
+Real staging verification remains none. Runtime admin coverage, rental direct-API
+isolation/unique/FK/transition behavior and reporting schema/audit tests must pass
+in explicitly approved contexts before release. A rolled-back DML test still
+requires permission; local synthetic HTTP sessions are not staging/RLS evidence.

@@ -18,7 +18,7 @@ export function rentalClient(replies: Reply[], role = "tenant", authenticated = 
   const from = vi.fn((table: string) => {
     const call: Call = { table, operations: [] }; calls.push(call);
     const query: Record<string, unknown> = {};
-    for (const name of ["select", "insert", "update", "delete", "eq", "in", "ilike", "gte", "lte", "order", "limit", "range"]) {
+    for (const name of ["select", "insert", "update", "delete", "eq", "in", "ilike", "gte", "lte", "order", "limit", "range", "not", "is"]) {
       query[name] = (...args: unknown[]) => { call.operations.push({ name, args }); return query; };
     }
     query.maybeSingle = () => Promise.resolve(resolve());
