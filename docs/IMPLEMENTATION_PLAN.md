@@ -223,3 +223,42 @@ GitHub branch rules must require that quality job for merge enforcement; no rule
 API was used or repository protection settings changed here. No merge/deployment
 was performed. Remaining release gates: matched live RLS/project/session evidence,
 approved real-session integration tests and explicit approval for database repairs.
+
+
+## Milestone 3 implementation record — 14 November 2026
+
+Branch `feature/core-rental-workflows` starts from c008b09 and targets
+`audit/backend-repair` in a separate draft PR. PR #2 and main are unchanged.
+See `CORE_RENTAL_WORKFLOWS.md` for the completion matrix, source/interface evidence,
+remaining database gates, separate proposed migration/preflight, security analysis,
+rollback, and demo/test procedure.
+
+Implemented: shared live public/tenant discovery/details/homepage listings;
+search/city/type/budget/bedroom filters, stable sorting and 12-record pagination;
+landlord editing with strict payload/role/owner validation; affected-row checks for
+all writes; pending-only compare-and-set decisions; tenant-owned applications and
+favorites; actual summary counts across owned data; no fabricated rental/revenue
+statistics. Existing design-system cards, responsive grids, theme/navigation shell
+and loading/error feedback are retained. Unconfirmed listing media is shown as
+not provided; private CNIC storage is untouched.
+
+Database status: no real rental session or metadata connection was available.
+The uniqueness migration is proposal-only; no SQL was run. Direct-API isolation,
+atomic duplicate races, transition/immutable-key enforcement and deletion history
+constraints require approved staging evidence and tests. Admin access remains
+unresolved and its policy is not assumed absent.
+
+| Check | Milestone 3 actual result |
+| --- | --- |
+| Regression suite | `npm test`: **79 passed across 14 files**, including all 33 existing repairs/diagnostic tests and 46 rental regression tests. Auth/ownership, strict payloads, stale/zero-row writes, duplicate handling, queries/counts, form states and page failures are covered with mocks/isolated fixtures. |
+| TypeScript | `npm run typecheck` passed. Initial nullable-row typing was corrected before final validation. |
+| Zero-warning ESLint | `npm run lint -- --max-warnings=0` passed: **0 errors, 0 warnings**. No suppressions added. |
+| Production build | Next 16.4.6 production build passed with loopback read-only fixture URL and dummy public key; existing CI uses its dummy build-only configuration. No real database was contacted. |
+| Browser smoke | **22 checks passed** against the final local production build: original route/auth/privacy checks plus real-query-shaped fixtures for pagination, title/city/type/budget filters, sorting, details, query errors, genuine empty state and mobile catalog. No authenticated staging mutation claim. Catalog screenshot reviewed. |
+| Dependency audits | Production audit **0 findings**; full audit **0 critical, 0 high, 7 moderate** development-only baseline findings. No dependency/lockfile changes in this milestone. |
+| Diff / database boundaries | `git diff --check` passed. Source/security review complete; existing admin diagnostics, proxy, auth cookies, dependency locks and administrator policies unchanged. No SQL executed; new preflight and uniqueness proposal require owner review. |
+
+No staging data or storage writes, accounts, migration execution, merges or
+production deployments. Remaining project completion gates are not disguised as
+implemented database guarantees. Authenticated staging checks require existing
+approved sessions; do not create fixtures in staging without explicit approval.

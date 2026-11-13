@@ -39,8 +39,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { useI18n } from "@/lib/i18n/context"
 import { useTheme } from "@/lib/theme/context"
@@ -50,10 +48,8 @@ const navigation = [
   { name: "Dashboard", href: "/landlord", icon: Home },
   { name: "My Properties", href: "/landlord/properties", icon: Building2 },
   { name: "Manage Listings", href: "/landlord/manage", icon: Plus },
-  { name: "Tenants", href: "/landlord/tenants", icon: Users },
-  { name: "Payments", href: "/landlord/payments", icon: CreditCard },
   { name: "Analytics", href: "/landlord/analytics", icon: BarChart3 },
-  { name: "Messages", href: "/landlord/inbox", icon: MessageSquare, badge: 3 },
+  { name: "Messages", href: "/landlord/inbox", icon: MessageSquare },
   { name: "Settings", href: "/landlord/settings", icon: Settings },
 ]
 
@@ -64,25 +60,6 @@ export default function LandlordLayout({ children }: { children: React.ReactNode
   const { t, language, setLanguage } = useI18n()
   const { theme, setTheme } = useTheme()
   
-  const [notifications, setNotifications] = useState([
-    { id: 1, type: "application", title: "New Rental Application", message: "Sarah applied for Apartment 5B", time: "2 min ago", read: false },
-    { id: 2, type: "payment", title: "Payment Received", message: "PKR 45,000 from Unit 3A", time: "1 hour ago", read: false },
-    { id: 3, type: "maintenance", title: "Maintenance Request", message: "AC repair needed at Villa 7", time: "3 hours ago", read: false },
-    { id: 4, type: "message", title: "New Message", message: "Tenant Ali sent you a message", time: "5 hours ago", read: true },
-    { id: 5, type: "payment", title: "Payment Overdue", message: "Unit 2B rent is 5 days overdue", time: "1 day ago", read: true },
-  ])
-
-  const unreadCount = notifications.filter(n => !n.read).length
-
-  const markAsRead = (id: number) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
-    toast.success("Notification marked as read")
-  }
-
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })))
-    toast.success("All notifications marked as read")
-  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -133,10 +110,10 @@ export default function LandlordLayout({ children }: { children: React.ReactNode
                 <AvatarFallback>AK</AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-foreground truncate">Ahmed Khan</p>
+                <p className="font-semibold text-foreground truncate">Landlord account</p>
                 <p className="text-xs text-muted-foreground">Landlord Account</p>
               </div>
-              <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">Pro</Badge>
+              <Badge className="bg-amber-500/10 text-amber-600 border-amber-500/20">Landlord</Badge>
             </div>
           </div>
 
@@ -157,29 +134,11 @@ export default function LandlordLayout({ children }: { children: React.ReactNode
                 >
                   <item.icon className="h-5 w-5" />
                   <span className="flex-1">{item.name}</span>
-                  {item.badge && (
-                    <Badge variant="secondary" className="h-5 min-w-[20px] px-1.5 text-xs">
-                      {item.badge}
-                    </Badge>
-                  )}
+
                 </Link>
               )
             })}
           </nav>
-
-          {/* Quick Stats */}
-          <div className="p-4 border-t border-border">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-                <p className="text-2xl font-bold text-emerald-600">12</p>
-                <p className="text-xs text-emerald-600/70">Properties</p>
-              </div>
-              <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20">
-                <p className="text-2xl font-bold text-blue-600">34</p>
-                <p className="text-xs text-blue-600/70">Tenants</p>
-              </div>
-            </div>
-          </div>
 
           {/* Logout */}
           <div className="p-4 border-t border-border">
@@ -214,7 +173,7 @@ export default function LandlordLayout({ children }: { children: React.ReactNode
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                placeholder="Search properties, tenants..."
+                placeholder="Use the listing search below" disabled
                 className="pl-10 bg-muted/50 border-0"
               />
             </div>
@@ -222,10 +181,7 @@ export default function LandlordLayout({ children }: { children: React.ReactNode
 
           <div className="flex items-center gap-2">
             {/* Add Property Button */}
-            <Button size="sm" className="hidden sm:flex gap-2">
-              <Plus className="h-4 w-4" />
-              Add Property
-            </Button>
+            <Button size="sm" className="hidden sm:flex gap-2" asChild><Link href="/landlord/properties#new-listing"><Plus className="h-4 w-4"/>Add Property</Link></Button>
 
             {/* Theme Toggle */}
             <Button
@@ -246,62 +202,7 @@ export default function LandlordLayout({ children }: { children: React.ReactNode
               {language === "en" ? "اردو" : "EN"}
             </Button>
 
-            {/* Notifications */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative">
-                  <Bell className="h-5 w-5" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-[10px] font-medium text-destructive-foreground flex items-center justify-center">
-                      {unreadCount}
-                    </span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="end" className="w-80 p-0">
-                <div className="flex items-center justify-between p-4 border-b border-border">
-                  <h3 className="font-semibold">Notifications</h3>
-                  {unreadCount > 0 && (
-                    <Button variant="ghost" size="sm" onClick={markAllAsRead} className="text-xs h-auto py-1">
-                      Mark all read
-                    </Button>
-                  )}
-                </div>
-                <ScrollArea className="h-[300px]">
-                  <div className="divide-y divide-border">
-                    {notifications.map((notification) => (
-                      <button
-                        key={notification.id}
-                        onClick={() => markAsRead(notification.id)}
-                        className={cn(
-                          "w-full flex flex-col items-start gap-1 p-4 text-left hover:bg-muted/50 transition-colors",
-                          !notification.read && "bg-primary/5"
-                        )}
-                      >
-                        <div className="flex items-center gap-2 w-full">
-                          <p className={cn("font-medium text-sm", !notification.read && "font-semibold")}>
-                            {notification.title}
-                          </p>
-                          {!notification.read && (
-                            <span className="w-2 h-2 bg-primary rounded-full ml-auto" />
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">{notification.message}</p>
-                        <p className="text-xs text-muted-foreground">{notification.time}</p>
-                      </button>
-                    ))}
-                  </div>
-                </ScrollArea>
-                <div className="p-2 border-t border-border">
-                  <Button variant="ghost" className="w-full text-sm" asChild>
-                    <Link href="/landlord/settings">
-                      <Settings className="h-4 w-4 mr-2" />
-                      Notification Settings
-                    </Link>
-                  </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
+            <Popover><PopoverTrigger asChild><Button variant="ghost" size="icon" aria-label="Notifications"><Bell className="h-5 w-5"/></Button></PopoverTrigger><PopoverContent align="end"><p className="text-sm">Notification delivery is not connected.</p></PopoverContent></Popover>
 
             {/* Profile */}
             <DropdownMenu>
