@@ -1,6 +1,27 @@
 # Administrator visibility — evidence-driven diagnosis
 
-14 November 2026. **Actual staging root cause remains unverified.** Owner reports
+## Current 8E diagnostic contract — 15 November 2026
+
+The unexecuted broad-row policy proposal is replaced by restricted admin RPCs.
+See ADMIN_ACCESS_FINAL_APPROVAL.md. `accessibleProfileCountScope` is explicit:
+admin-projection means the safe directory total (expected 6 for admin); own-rls
+means direct own-table count (expected 1 for ordinary users). Direct table count
+stays 1 for admins too. Historical unscoped counts below measure direct RLS;
+do not compare them as the same metric. Missing helper yields null count/scope;
+missing admin count RPC yields null count with admin-projection scope. No fallback.
+
+## Latest confirmed evidence — 15 November 2026
+
+The owner now confirms **no makaanx_is_admin overload in any schema and no admin
+SELECT policy**, with only profiles_select_own, matching browser/server PGRST202
+and one visible row. This supersedes the prior owner observations below. Missing
+RPC explains PGRST202; own-only RLS explains the one-row result. See
+ADMIN_ACCESS_REPAIR.md for the exact minimum proposal, guards, rollback and local
+authorization evidence. No live repair has been executed or certified.
+
+## Historical evidence and general decision tree — 14 November 2026
+
+At that time the actual staging root cause was unverified. Owner reports
 `ficudncgevvxsxbjscrk`, six profiles (admin/landlord/four tenants), postgres-owned
 SECURITY DEFINER helper, authenticated EXECUTE/no anon EXECUTE, protected UPDATE
 columns and an admin SELECT policy, but an app session previously saw one profile.

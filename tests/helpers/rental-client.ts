@@ -25,8 +25,15 @@ export function rentalClient(replies: Reply[], role = "tenant", authenticated = 
     query.then = (onfulfilled: (value: ReturnType<typeof resolve>) => unknown) => Promise.resolve(resolve()).then(onfulfilled);
     return query;
   });
+  const rpc = vi.fn((name: string, args?: unknown) => {
+    calls.push({ table: `rpc:${name}`, operations: [{ name: "rpc", args: [args] }] });
+    return { then: (onfulfilled: (value: ReturnType<typeof resolve>) => unknown) => Promise.resolve(resolve()).then(onfulfilled) };
+  });
   const getUser = vi.fn().mockResolvedValue({ data: { user: authenticated ? { id: role === "landlord" ? landlordId : tenantId } : null }, error: null });
-  return { client: { auth: { getUser }, from } as unknown as SupabaseClient, calls, getUser, remaining: () => queue.length };
+  return { client: { auth: { getUser }, from, rpc } as unknown as SupabaseClient, calls, getUser, remaining: () => queue.length };
 }
 export const roleReply = (role: string): Reply => ({ data: { role } });
 export const hasOperation = (call: Call, name: string, ...args: unknown[]) => call.operations.some(op => op.name === name && isDeepStrictEqual(op.args, args));
+
+export const projectionRow = (id = tenantId, role = "tenant", full_name = "Fictional applicant") => ({ id, role, full_name, verification_status: "pending", has_document: true });
+export const profileCountsReply = (total = 6): Reply => ({ data: [{ total, admins: 1, landlords: 1, tenants: Math.max(0, total - 2), pending: 5, submitted: 1 }] });

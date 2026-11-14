@@ -28,6 +28,12 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-build-only
         run: npm run build
   postgres-integration:
+    strategy:
+      fail-fast: false
+      matrix:
+        postgres: ['16', '17']
+    env:
+      MAKAANX_LOCAL_PG_MAJOR: ${{ matrix.postgres }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -37,10 +43,14 @@ jobs:
           node-version: '22'
       - name: Isolated PostgreSQL authorization and concurrency tests
         run: node scripts/local-db/run.cjs
+      - name: Exact admin visibility repair and rollback authorization tests
+        run: node scripts/local-db/admin-repair.cjs
       - name: Upload bounded local database results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: local-postgresql-results
-          path: work/local-db-results.json
+          name: local-postgresql-results-pg${{ matrix.postgres }}
+          path: |
+            work/local-db-results.json
+            work/admin-repair-results.json
           if-no-files-found: ignore

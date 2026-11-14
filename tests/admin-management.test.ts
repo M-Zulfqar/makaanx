@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { requireAdministrator } from "../lib/admin/access";
 import { adminPropertyQuery, parseAdminPropertyFilters, readAdminProperties, readAdminAnalytics, metric, summarizeSample, COVERAGE } from "../lib/admin/data";
 import { searchHref } from "../lib/rentals/schema";
-import { hasOperation, landlordId, propertyId, rentalClient, roleReply, type Reply } from "./helpers/rental-client";
+import { hasOperation, landlordId, propertyId, rentalClient, roleReply, type Reply, projectionRow, profileCountsReply } from "./helpers/rental-client";
 const row = { id: propertyId, landlord_id: landlordId, title: "Permitted listing", address: "Street 1", city: "Lahore", type: "House", status: "occupied", rent: 50000, bedrooms: 2, bathrooms: 1, area: 900, created_at: "2026-11-14T00:00:00Z" };
 describe("administrator authorization", () => {
   test("anonymous calls stop before profile or bulk queries", async () => {
@@ -48,11 +48,12 @@ describe("administrator properties", () => {
     const f = rentalClient([roleReply("admin"), { data: [row], count: 1 }, { data: [] }]);
     const result = await readAdminProperties(f.client, parseAdminPropertyFilters({}).filters);
     expect(result.coverage).toBe(COVERAGE); expect(result.count).toBe(1); expect(result.names.size).toBe(0);
-    expect(hasOperation(f.calls[2], "select", "id,full_name")).toBe(true);
+    expect(f.calls[2].table).toBe("rpc:makaanx_admin_profiles");
+    expect(hasOperation(f.calls[2], "rpc", { p_ids: [landlordId], p_limit: 100, p_offset: 0 })).toBe(true);
     expect(JSON.stringify(result)).not.toMatch(/cnic_path|email|phone|signedUrl/);
   });
   test("allowed owner names are mapped using only the permitted profile fields", async () => {
-    const f = rentalClient([roleReply("admin"), { data: [row], count: 1 }, { data: [{ id: landlordId, full_name: "Allowed owner", cnic_path: "PRIVATE_SENTINEL" }] }]);
+    const f = rentalClient([roleReply("admin"), { data: [row], count: 1 }, { data: [{ ...projectionRow(landlordId,"landlord","Allowed owner"), cnic_path: "PRIVATE_SENTINEL" }] }]);
     const result = await readAdminProperties(f.client, parseAdminPropertyFilters({}).filters);
     expect(result.names.get(landlordId)).toBe("Allowed owner"); expect([...result.names.values()]).not.toContain("PRIVATE_SENTINEL");
   });
@@ -83,13 +84,14 @@ describe("analytics accuracy and privacy", () => {
     expect(summarizeSample({ data: [], error: { code: "42501" } }).unavailable).toBe(true);
   });
   test("metrics exclude ineligible verification roles and never select private documents", async () => {
-    const replies: Reply[] = [roleReply("admin"), ...Array.from({ length: 11 }, () => ({ data: null, count: 1 })), { data: [{ status: "occupied", created_at: "2026-11-14T00:00:00Z" }] }, { data: [], error: { code: "42501", message: "PRIVATE" } }];
+    const replies: Reply[] = [roleReply("admin"), ...Array.from({ length: 5 }, () => ({ data: null, count: 1 })), { data: [{ status: "occupied", created_at: "2026-11-14T00:00:00Z" }] }, { data: [], error: { code: "42501", message: "PRIVATE" } }, profileCountsReply()];
     const f = rentalClient(replies); const result = await readAdminAnalytics(f.client);
     expect(result.coverage).toBe("accessible-unverified"); expect(result.metrics).toHaveLength(11);
     expect(result.applications.unavailable).toBe(true);
-    const eligible = f.calls.filter(c => hasOperation(c, "eq", "verification_status", "pending"));
-    expect(eligible).toHaveLength(2);
-    for (const call of eligible) expect(hasOperation(call, "in", "role", ["tenant", "landlord"])).toBe(true);
+    expect(f.calls.filter(c => c.table === "profiles")).toHaveLength(1); // own-role authorization only
+    expect(f.calls.filter(c => c.table === "rpc:makaanx_admin_profile_counts")).toHaveLength(1);
+    expect(result.metrics[0].value).toBe(6);
+    expect(result.metrics.find(m => m.label === "Submitted pending verification requests")?.value).toBe(1);
     const selects = f.calls.flatMap(c => c.operations.filter(op => op.name === "select").map(op => op.args[0]));
     expect(selects.join(" ")).not.toMatch(/cnic|phone|email|storage/);
     expect(JSON.stringify(result)).not.toContain("PRIVATE");

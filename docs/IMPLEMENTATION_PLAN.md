@@ -437,3 +437,100 @@ No outstanding local failures. PostgreSQL completed repeated fresh-container run
 the final logging configuration suppresses statement/error payloads. SQL ran ONLY
 on task-created disposable local databases. GitHub Actions app and PostgreSQL job
 results are recorded in the new draft PR after the actual run.
+
+## Milestone 8C — Minimum admin visibility repair proposal
+
+15 November 2026. Owner-confirmed evidence now supersedes the earlier helper/policy
+observations: missing helper in every schema, only profiles_select_own, matching
+browser/server PGRST202/count-one. Prepared CREATE-only helper + authenticated
+admin SELECT policy, preserving own policy and all profile ACLs/write policies/
+records. No unrelated domain or application gate changes. See ADMIN_ACCESS_REPAIR.md
+for exact files, additional fail-closed prerequisites, matrix, risks and owner checklist.
+
+Actual local checks: **19 focused PostgreSQL repair/rollback checks passed** on
+PostgreSQL 16.16, six synthetic profiles (1 admin/1 landlord/4 tenants), ordinary
+non-owner/NOBYPASSRLS actor sessions; **35 existing PostgreSQL checks passed**;
+**210 unit tests passed across 26 files**; typecheck, zero-warning lint and production
+build passed. Unexpected grants/policies/schema/default EXECUTE refuse atomically;
+rollback refuses drift/dependencies and restores admin own-only without row/ACL
+changes. CI adds the focused suite to the existing database job; actual status is
+recorded on the draft PR. No staging/production SQL, accounts, privilege changes,
+merge or deployment occurred; no staging repair is claimed.
+
+## Milestone 8D — Final admin security preflight
+
+15 November 2026. Continues the same draft PR #8; no new PR or feature gate.
+Reviewed the full migration/rollback and actual admin projections. Current table
+SELECT + admin row policy is broader than UI needs: contact/document-reference
+columns become cross-profile readable. Exact live inventory is BLOCKED pending
+new read-only preflight; a narrower admin projection is proposed, not implemented.
+
+Hardened privileged client/parent-role guards, unintended helper-reference
+activation and text-body rollback dependencies; added bounded idle transaction
+timeout. New preflight returns only metadata/hashes/shape flags and aggregates,
+not routine bodies, policy literals, identities or private document data. See
+ADMIN_ACCESS_FINAL_APPROVAL.md for all evidence, matrix, risks and NO-GO decision.
+
+Final local results: 28 focused and 35 regression PostgreSQL checks passed on
+16.16; 210 unit tests / 26 files passed; zero-warning lint, typecheck and production
+build passed with loopback/dummy configuration. No browser/live Supabase tests run
+in 8D. Updated CI status is recorded in PR #8. No staging SQL, policies/privileges,
+accounts, documents, merge, deployment or feature changes.
+
+## Milestone 8E — Least-privilege administrator access
+
+15 November 2026. Existing draft PR #8; replaces unexecuted 8C/8D broad profile
+SELECT policy with a five-column projection and separate safe counts, both
+stored-admin-only. Existing table RLS/grants stay own-only, including admin;
+no Storage/service-role/write/feature-gate changes. Updated directory, queue,
+owner lookup, analytics and scope-labelled diagnostics. Missing interfaces fail
+closed without a direct-table fallback. See ADMIN_ACCESS_FINAL_APPROVAL.md for
+contracts, matrix, exact SQL, recovery and remaining live compatibility blockers.
+
+Final executed results are recorded below and in PR #8. Staging remains NO-GO;
+no staging connection/SQL, real accounts/documents, merge or deployment occurred.
+
+### Executed 8E validation
+
+- `npm run test:db:admin-repair`: **39 passed**, PostgreSQL **16.16**.
+- `npm run test:db:local`: **35 passed**, PostgreSQL **16.16**.
+- `npm test`: **222 passed across 27 files**.
+- `npm run lint -- --max-warnings=0`, `npm run typecheck`, production build and
+  `git diff --check`: passed. Build used loopback/dummy configuration only.
+- Local production browser suites: **22 general + 22 admin + 42 identity + 32
+  messaging = 118 passed**, synthetic loopback HTTP/session fixtures only.
+- Tests caught and corrected a rollback guard SQL alias collision and an outdated
+  owner-label browser selector; their final reruns passed. No unresolved local
+  test failure. Actual Supabase/JWT acceptance remains BLOCKED.
+- Updated GitHub Actions status is recorded on PR #8 for the final commit.
+
+## Milestone 8F — PostgreSQL 17 / managed function ACL compatibility
+
+15 November 2026. Existing draft PR #8; starting da0100b. Owner-supplied Copilot
+preflight confirms PG17.11 and service_role function defaults. Exact global/schema
+provenance remains unknown; supplemental metadata and separately approved private
+routine inspection are prepared, not run live. Only new RPC service_role EXECUTE
+is revoked; defaults/existing functions/profile policies/grants stay unchanged.
+Unknown executors and inherited/SET-role access still abort. Added PG17 MAINTAIN
+checks, pinned 17.11 amd64 image and required PG16/17 CI matrix. See
+ADMIN_PG17_COMPATIBILITY.md for full reconciliation and live blockers. Staging NO-GO.
+
+### Executed 8F validation
+
+- PostgreSQL **17.11** pinned amd64 Alpine: **48 focused checks + 35 domain
+  regression checks passed**. Includes both managed default ACL scopes, role-absent
+  installation, effective EXECUTE/SET membership, MAINTAIN/pg_maintain, privacy,
+  authorization, filters/pages and atomic migration/rollback.
+- PostgreSQL **16.16** pinned image: **46 focused + 35 domain regression checks
+  passed** (the two PG17-only MAINTAIN cases are conditional).
+- **224 unit tests / 27 files passed**; zero-warning lint, typecheck, loopback/dummy
+  production build and diff check passed.
+- **118 local production browser checks passed**: general 22, admin 22, identity
+  42, messaging 32. Synthetic loopback fixtures only, no actual Supabase/JWT claim.
+- Initial image pull/setup was interrupted by local Docker disk pressure; removed
+  only regenerable task caches and reran sequentially to completion. A new test
+  environment typing error (missing NODE_ENV) was corrected; final build/typecheck
+  passed. No unresolved local failure. Earlier interrupted logs are not final evidence.
+- Both SQL/private-inspection scripts were syntax/execution checked only against
+  synthetic local catalogs; no live bodies or private values were obtained.
+- Final commit and actual GitHub Actions matrix results are recorded in PR #8.

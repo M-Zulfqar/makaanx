@@ -4,7 +4,7 @@ import type { ActivitySample, Metric } from "@/lib/admin/data";
 export function AdminCoverage() {
   return <aside className="space-y-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-5" aria-label="Data coverage">
     <h2 className="font-semibold">Accessible data · platform coverage unverified</h2>
-    <p className="text-sm text-muted-foreground">Exact counts cover rows visible to this session under RLS. Successful queries, zero rows, or a true admin helper do not prove platform-wide access. Restricted datasets can succeed without an error.</p>
+    <p className="text-sm text-muted-foreground">Profile counts cover the restricted administrator directory. Property and application counts cover rows visible to this session under their database policies. These access paths differ; successful queries alone do not verify platform-wide coverage.</p>
     <Link href="/auth/diagnostics" className="inline-block text-sm underline">Compare browser/server access diagnostics</Link>
   </aside>;
 }

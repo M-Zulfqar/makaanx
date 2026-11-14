@@ -13,8 +13,8 @@ const profiles = [
   ...Array.from({ length: 4 }, (_, i) => ({ id: `10000000-0000-4000-8000-${String(i + 1).padStart(12, '0')}`, role: 'tenant' })),
 ].map(row => ({ ...row, full_name: `Fixture ${row.role}`, verification_status: 'pending', cnic_path: 'PRIVATE_FIXTURE_DOCUMENT_NOT_FOR_OUTPUT' }));
 // Additional fictional subjects for identity browser pagination/status checks.
-// Only this special synthetic reviewer sees these rows; normal admin fixtures
-// retain the one-visible-profile symptom used by previous milestone checks.
+// The special reviewer uses the larger synthetic projection for queue pagination.
+// Every direct base-profile fixture read stays own-only.
 const reviewerId = '80000000-0000-4000-8000-000000000001';
 const identityProfiles = [
   { id: reviewerId, role: 'admin', full_name: 'Fictional reviewer', verification_status: 'pending', cnic_path: null },
@@ -58,6 +58,22 @@ const server = http.createServer(async (req, res) => {
   if (authFixtures && url.pathname === '/rest/v1/rpc/makaanx_is_admin' && req.method === 'POST') {
     res.end(JSON.stringify(Boolean(user?.role === 'admin'))); return; // Read-only scalar RPC fixture.
   }
+  if (authFixtures && ['/rest/v1/rpc/makaanx_admin_profiles','/rest/v1/rpc/makaanx_admin_profile_counts'].includes(url.pathname) && req.method === 'POST') {
+    if (user?.role !== 'admin') { res.writeHead(403); res.end(JSON.stringify({code:'42501'})); return; }
+    let raw=''; for await (const chunk of req) { raw+=chunk; if(raw.length>10000){res.writeHead(400);res.end();return;} }
+    let args; try { args=JSON.parse(raw||'{}'); } catch { res.writeHead(400);res.end();return; }
+    const pool=user.id===reviewerId?identityProfiles:profiles;
+    const filtered=pool.filter(row => (!args.p_search||row.full_name.toLowerCase().includes(args.p_search.toLowerCase()))
+      && (!args.p_role||row.role===args.p_role) && (!args.p_status||row.verification_status===args.p_status)
+      && (!args.p_eligible||['tenant','landlord'].includes(row.role))
+      && (!args.p_submission||args.p_submission==='all'||(args.p_submission==='submitted'?row.cnic_path!=null:row.cnic_path==null))
+      && (!args.p_ids||args.p_ids.includes(row.id))).sort((a,b)=>a.id.localeCompare(b.id));
+    if(url.pathname.endsWith('makaanx_admin_profile_counts')){
+      const eligible=filtered.filter(row=>['tenant','landlord'].includes(row.role)&&row.verification_status==='pending');
+      res.end(JSON.stringify([{total:filtered.length,admins:filtered.filter(r=>r.role==='admin').length,landlords:filtered.filter(r=>r.role==='landlord').length,tenants:filtered.filter(r=>r.role==='tenant').length,pending:eligible.length,submitted:eligible.filter(r=>r.cnic_path!=null).length}]));return;
+    }
+    res.end(JSON.stringify(filtered.slice(args.p_offset||0,(args.p_offset||0)+(args.p_limit??100)).map(({id,full_name,role,verification_status,cnic_path})=>({id,full_name,role,verification_status,has_document:cnic_path!=null}))));return;
+  }
   if(messagingFixtures&&await messagingFixtures(req,res,url,user))return;
   if (!['GET', 'HEAD'].includes(req.method)) { res.writeHead(405); res.end(JSON.stringify({ code: 'READ_ONLY_FIXTURE' })); return; }
   if (url.pathname === '/health') { res.end(JSON.stringify({ fixture: true, syntheticAuth: authFixtures })); return; }
@@ -69,7 +85,7 @@ const server = http.createServer(async (req, res) => {
   let permitted;
   if (table === 'properties') permitted = rows;
   // Model the known visibility symptom without claiming it reproduces real RLS.
-  else if (authFixtures && table === 'profiles') permitted = !user ? [] : user.id === reviewerId ? identityProfiles : [...profiles, ...identityProfiles].filter(row => row.id === user.id);
+  else if (authFixtures && table === 'profiles') permitted = !user ? [] : [...profiles, ...identityProfiles].filter(row => row.id === user.id);
   else if (authFixtures && table === 'applications') permitted = !user ? [] : user.role === 'tenant' ? applications.filter(row => row.tenant_id === user.id) : applications;
   else { res.writeHead(404); res.end(JSON.stringify({ code: 'FIXTURE_ROUTE_UNAVAILABLE' })); return; }
   if ((url.searchParams.get('title') || '').replace(/\\/g, '').includes('force_error')) { res.writeHead(500); res.end(JSON.stringify({ code: 'XX000', message: 'PRIVATE_DATABASE_DETAIL' })); return; }

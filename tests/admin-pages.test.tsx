@@ -1,7 +1,7 @@
 import React from "react";
 import { beforeEach, expect, test, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { rentalClient, roleReply, propertyId, landlordId, hasOperation } from "./helpers/rental-client";
+import { rentalClient, roleReply, propertyId, landlordId, hasOperation, projectionRow, profileCountsReply } from "./helpers/rental-client";
 const mocks = vi.hoisted(() => ({ client: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/admin/server", () => ({ administratorClient: mocks.client }));
@@ -35,9 +35,10 @@ test("invalid property filters do not query listings", async () => {
   expect(html).toContain('role="alert"'); expect(f.calls).toHaveLength(0);
 });
 test("verification queue excludes admins and counts all submitted rows, not just a sample", async () => {
-  const f = rentalClient([roleReply("admin"), { data: [{ id: propertyId, full_name: "Applicant", role: "tenant", verification_status: "pending" }], count: 99 }]); mocks.client.mockResolvedValue(f.client);
+  const f = rentalClient([roleReply("admin"), { data: [projectionRow(propertyId,"tenant","Applicant")] }, profileCountsReply(99)]); mocks.client.mockResolvedValue(f.client);
   const html = renderToStaticMarkup(await Verifications()); expect(html).toContain(">99<");
-  expect(hasOperation(f.calls[1], "in", "role", ["tenant", "landlord"])).toBe(true);
+  expect(f.calls[1].table).toBe("rpc:makaanx_admin_profiles");
+  expect(hasOperation(f.calls[1],"rpc",{p_search:"",p_role:"",p_status:"pending",p_submission:"submitted",p_eligible:true,p_limit:12,p_offset:0})).toBe(true);
   expect(f.calls.flatMap(c => c.operations.filter(op => op.name === "select").map(op => String(op.args[0]))).join()).not.toContain("cnic_path");
 });
 test("settings no longer pretends to save, back up or monitor services", async () => {
