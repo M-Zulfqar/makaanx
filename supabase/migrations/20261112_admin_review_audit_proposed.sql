@@ -1,3 +1,6 @@
+-- HISTORICAL ALTERNATIVE: superseded as a recommendation by
+-- 20261114_identity_workflow_v1_proposed.sql and docs/IDENTITY_VERIFICATION_MILESTONE.md.
+-- Do not apply together. No claim is made that either proposal is deployed.
 -- DRAFT ONLY: do not execute until staging backup, review, and authorization tests.
 -- Depends on 20261112_admin_verification_proposed.sql.
 -- Staging check (2026-11-12): only profiles_role_check was found; no

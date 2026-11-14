@@ -299,3 +299,48 @@ Real staging verification remains none. Runtime admin coverage, rental direct-AP
 isolation/unique/FK/transition behavior and reporting schema/audit tests must pass
 in explicitly approved contexts before release. A rolled-back DML test still
 requires permission; local synthetic HTTP sessions are not staging/RLS evidence.
+
+## Milestone 5 identity workflow readiness — 14 November 2026
+
+Branch `feature/secure-identity-verification` starts from PR #4 `fcd23b1` and targets
+`feature/admin-management` as a separate stacked draft. The earlier three drafts
+are preserved/unmerged. See `IDENTITY_VERIFICATION_MILESTONE.md` for evidence,
+architecture, completion matrix and explicit implementation limits.
+
+Implemented own-role/status privacy checks, local one-file MIME/size/header
+validation, proposed reservation/finalize coordinator with tracked same-file
+retry/unknown-result recovery, signup separation, source-controlled upload gate,
+and real read-only filtered/paginated admin queue. Removed dormant legacy review
+RPC controls. No live upload or review is enabled while authorization remains
+unverified. Existing pending status alone is not claimed to be a submission.
+
+One reviewed v1 SQL proposal replaces the recommendation in conflicting historical
+review proposals: reservation-bound private uploads, profile/request locks,
+pending/version/object checks, single JSON review API, immutable review and
+server-only delivery audit, explicit retirement of both old overloads, no review
+EXECUTE grant. Preflight and fail-closed nondestructive rollback prepared only.
+No SQL, real DB/storage writes, accounts, private documents, merges or deployments.
+
+| Check | Milestone 5 actual result |
+| --- | --- |
+| Regression suite | **158 tests passed across 20 files**, including 53 additional identity/page checks; existing regression coverage retained. |
+| TypeScript | **Passed** (`npm run typecheck`) after final production route generation. |
+| Zero-warning ESLint | **Passed**, 0 errors and 0 warnings. |
+| Production build | **Passed**, Next.js 16.4.6 with dummy loopback public configuration. |
+| Existing and administration browser smoke | **22 existing + 21 administration checks passed** against final production build; isolated read-only HTTP fixtures. |
+| Identity browser smoke | **42 checks passed** against final build: role/status handling, local file validation/gating, scoped queue pagination/filter/empty states, privacy, no write requests and mobile layouts. Synthetic sessions only. |
+| Dependency audits | Production 0 findings; full 7 moderate development-only baseline, 0 high/critical. No dependency/lock changes. |
+| Security/diff review | `git diff --check` passed; full changed-source/SQL privacy and authorization review completed. Dependency locks, existing diagnostics, Supabase clients, proxy/cookies and admin helper/profile policies unchanged. SQL reviewed as a proposal, not executed. |
+
+Outstanding: matched staging admin-visibility evidence; PostgreSQL/storage
+acceptance tests (including self-review, concurrency and audit fault injection);
+approved broker/access principal, stored-byte-validation decision, retention and
+cleanup worker. SQL architecture is not an executed authorization guarantee.
+Source-gated upload and ungranted review remain explicit release gates. Next
+backend work can continue independently, but identity release cannot be claimed.
+
+Final checks have no outstanding local failures. Initial test-table argument and
+localhost fixture CORS/selector issues were corrected and rerun successfully; no
+application authorization rule was weakened. PostgreSQL, storage enforcement,
+concurrency and atomic-audit acceptance cases are explicitly **NOT RUN**. GitHub
+Actions status is recorded in the draft PR, not inferred from local results.

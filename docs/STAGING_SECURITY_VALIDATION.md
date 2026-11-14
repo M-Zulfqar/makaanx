@@ -193,3 +193,66 @@ prerequisites; do not merge/deploy or run a migration to make tests green.
 Local lint/typecheck/build/unit/browser/CI results are recorded in the implementation
 plan and PR. Verified real staging remains **none in this milestone**. Admin runtime,
 rental direct-API, transition/history and report schema gates remain outstanding.
+
+## 9. Milestone 5 identity workflow gates (not executed)
+
+Read `IDENTITY_VERIFICATION_MILESTONE.md` first. Its v1 proposal supersedes the
+recommendation in the three historical 20261026/20261112 review proposals; it does
+not establish what is deployed or grant a migration approval. Current uploads,
+review decisions and private document viewing are disabled in application code.
+
+Order:
+
+1. Preserve the existing `/auth/diagnostics` and pair its five fields from the
+   same failing browser/server session with `admin_visibility_minimum_readonly.sql`.
+   Project must match `ficudncgevvxsxbjscrk`; resolve environment/session/helper/
+   policy/query discrepancies before claiming global queue coverage. Metadata
+   helper/policy existence is not effective authorization evidence.
+2. Review `preflight_identity_v1_readonly.sql` metadata: all overload definitions,
+   ownership/EXECUTE and effective inherited/PUBLIC grants, profile/status types,
+   triggers/constraints, schema CREATE privileges, bucket privacy/MIME/size limits,
+   object owner_id/metadata contract, all storage policies and audit tables. No
+   profile identities or document names/bytes are selected by the script. It is
+   prepared, not executed in this session.
+3. Capture exact baseline ACL/policies and trusted restore plan; reconcile unknown
+   policies/functions rather than replacing or stacking them. The v1 proposal's
+   `REVIEW_REQUIRED` policy fingerprint deliberately aborts until reviewed/pinned;
+   nonallowlisted storage policies also abort. Other bucket workflows must survive.
+   Keep existing audit tables/history. No bulk legacy-document backfill is approved.
+4. Only after explicit migration/test approval, validate on an isolated clone with
+   synthetic documents and fictional accounts. Existing real-session read checks
+   do not authorize creating test users or writing dummy staging records. No SQL
+   or DML (even rolled back) is authorized by this checklist itself.
+5. Keep application upload gate closed until reservation/schema/storage tests,
+   retention/cleanup worker and byte-validation decision pass. Keep review EXECUTE
+   ungranted and viewer UI absent until a narrow document broker/access-audit
+   design is implemented, approved and tested. No blanket admin storage SELECT,
+   browser signed URLs or service-role bypass.
+
+### Required post-approval database and storage acceptance tests — NOT RUN
+
+| Case | Required result/evidence |
+| --- | --- |
+| Anonymous/tenant/landlord/admin submission | Anonymous denied; only stored tenant/landlord may reserve own; metadata-forged admin/role cannot authorize. Admin cannot submit. |
+| Direct grants and malicious alternate RPC | Role/status/trust/path writes denied through REST, all old submission/review overloads client-revoked, unknown privileged writers reconciled. |
+| Types/count/size/content | Null/invalid inputs rejected; one reserved path; bucket enforces private MIME/size. Signature/content spoofing requires approved trusted validation, not client-header trust. |
+| Namespace/owner | Tenant A cannot upload/list/download/overwrite/delete tenant B's object even with guessed path; same for landlord and anonymous. Only reserved own path accepts INSERT; expired/unreserved path denied. |
+| Duplicate/expired/begin retry | Concurrent identical begin produces one active row/path; same content resumes; differing content conflicts; expired reservation blocks new upload until cleanup. Settled/legacy reference cannot be overwritten. |
+| Upload failure and unknown result | No object implies finalize failure; committed upload/response loss resumes same path; committed finalize/response loss resumes pending without new upload or duplicate submission. |
+| Finalize integrity | Own profile and request must match; object exists/owner/type/size correct; pending link/version atomic. Wrong actor, missing object, stale state or replaced reference denied. |
+| Review input/NULLs | JSON null/wrong type/missing or unknown keys, invalid UUID/version/decision/oversized notes and short rejection reason denied with sanitized machine errors. |
+| Review authorization | Anonymous, tenant, landlord, forged metadata and self-review denied. Even admin cannot call while EXECUTE ungranted; no direct table/audit writes. |
+| View evidence | No broker grant supplied; clients cannot insert delivery evidence. After separate broker approval, require current pending request, same actor/version, successful delivery and age ≤10 minutes. Missing/expired/future/wrong-version evidence denied. |
+| Pending-only/stale/duplicate decisions | Only linked eligible pending request transitions. Expected version exact; two concurrent reviews yield one committed decision and event; settled retry is stale and does not create another event. |
+| Atomicity fault injection | With approved isolated owner fixture, force audit insertion failure: profile status and request/version remain unchanged. Forced profile/request write failures also leave no audit. Remove injected fault after test. |
+| Missing/deleted/wrong-owner object | Both approval and rejection fail; no reference/path returned. Recovery requires approved workflow, not status manipulation. |
+| Immutability and retention | Clients cannot edit/delete review/access audit or request rows. FK RESTRICT preserves history; account erasure needs reviewed retention plan. |
+| Broker/viewer (future) | One current authorized request only; cookie-auth admin/no self, CSRF protection, rate limit, no bulk/listing, no-store/nosniff headers, no path/URL/log leakage, internal URL TTL ≤60s if used. |
+| Cleanup (future) | Reserved expired unlinked only; Storage API deletion, no storage SQL DELETE, locks/fencing against finalize and delayed uploads, idempotent recovery after partial failure, audit kept. Pending/settled never auto-deleted. |
+| Rollback/off-switch | Disable UI; revoke v1 RPC and insert access; all rows/objects/history retained. No broad legacy policy restoration or CASCADE. |
+
+Record aggregate outcomes and bounded machine codes only. Do not export actual
+objects, raw object paths, tokens, hashes, reviewer notes or private payloads into
+GitHub artifacts. Supabase owner-editor execution is not a substitute for real
+JWT/RLS/storage-role tests. Unit doubles and localhost synthetic sessions do not
+prove these cases. Keep failed/unrun cases as release blockers.

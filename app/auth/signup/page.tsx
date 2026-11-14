@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -19,14 +19,12 @@ import {
   EyeOff,
   ArrowRight,
   ArrowLeft,
-  Upload,
   Home,
   Key,
   CheckCircle2,
   Sparkles,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useDropzone } from "react-dropzone";
 import Confetti from "react-confetti";
 import { createClient } from "@/lib/supabase/browser";
 import { toast } from "sonner";
@@ -34,8 +32,8 @@ import { toast } from "sonner";
 const steps = [
   { id: 1, title: "Personal Info", titleUrdu: "ذاتی معلومات" },
   { id: 2, title: "Select Role", titleUrdu: "کردار منتخب کریں" },
-  { id: 3, title: "Upload CNIC", titleUrdu: "CNIC اپ لوڈ کریں" },
-  { id: 4, title: "AI Verification", titleUrdu: "AI تصدیق" },
+  { id: 3, title: "Identity review", titleUrdu: "شناخت کا جائزہ" },
+  { id: 4, title: "Registration", titleUrdu: "رجسٹریشن" },
   { id: 5, title: "Success", titleUrdu: "کامیابی" },
 ];
 
@@ -45,7 +43,6 @@ export default function SignupPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [showPassword, setShowPassword] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
-  const [trustScore, setTrustScore] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
@@ -54,22 +51,6 @@ export default function SignupPage() {
     password: "",
     confirmPassword: "",
     role: "",
-    cnicImage: null as File | null,
-  });
-
-  const onDrop = useCallback((acceptedFiles: File[]) => {
-    if (acceptedFiles.length > 0) {
-      if (acceptedFiles[0].size > 10 * 1024 * 1024) { toast.error("Maximum CNIC image size is 10 MB."); return; }
-      setFormData((prev) => ({ ...prev, cnicImage: acceptedFiles[0] }));
-    }
-  }, []);
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop,
-    accept: {
-      "image/*": [".jpeg", ".jpg", ".png"],
-    },
-    maxFiles: 1,
   });
 
   const nextStep = async () => {
@@ -77,11 +58,7 @@ export default function SignupPage() {
       setCurrentStep((prev) => Math.min(prev + 1, 5));
       return;
     }
-    if (!formData.cnicImage || !["tenant", "landlord"].includes(formData.role)) return;
-    if (formData.cnicImage.size > 10 * 1024 * 1024) {
-      toast.error("CNIC image must be smaller than 10 MB.");
-      return;
-    }
+    if (isVerifying || !["tenant", "landlord"].includes(formData.role)) return;
     setIsVerifying(true);
     setCurrentStep(4);
     try {
@@ -100,28 +77,12 @@ export default function SignupPage() {
       });
       if (error) throw error;
       if (!data.user) throw new Error("Registration could not be completed.");
-      // Email confirmation normally means no session exists yet.
-      // CNIC upload is performed after sign-in, not with an anonymous token.
-      if (data.session) {
-        const path = `${data.user.id}/cnic-${crypto.randomUUID()}.${formData.cnicImage.type === "image/png" ? "png" : "jpg"}`;
-        const upload = await supabase.storage.from("cnic-documents").upload(path, formData.cnicImage, {
-          contentType: formData.cnicImage.type,
-          upsert: false,
-        });
-        if (upload.error) {
-          toast.warning("Account created. Upload your CNIC after signing in.");
-        } else {
-          const update = await supabase.rpc("makaanx_submit_cnic", { document_path: path });
-          if (update.error) toast.warning("Account created. Please retry CNIC submission after signing in.");
-        }
-      }
-      setTrustScore(0); // No AI verification has run. Never fabricate a score.
       setCurrentStep(5);
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 5000);
-      toast.success(data.session ? "Account created. CNIC review is pending." : "Check your email to confirm your account, then submit your CNIC.");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Registration failed.");
+      toast.success(data.session ? "Account created. Continue to identity submission after signing in." : "Check your email to confirm your account, then submit your CNIC.");
+    } catch {
+      toast.error("Registration could not be completed. Check your details and try again.");
       setCurrentStep(3);
     } finally {
       setIsVerifying(false);
@@ -145,7 +106,7 @@ export default function SignupPage() {
       case 2:
         return formData.role !== "";
       case 3:
-        return formData.cnicImage !== null;
+        return true;
       default:
         return true;
     }
@@ -190,7 +151,7 @@ export default function SignupPage() {
             transition={{ delay: 0.1 }}
             className="text-lg text-primary-foreground/80 max-w-md"
           >
-            Join thousands of verified users on Pakistan&apos;s most trusted rental platform.
+            Find a rental and connect with landlords on MakaanX. Identity review is a separate manual process.
           </motion.p>
 
           {/* Step Progress */}
@@ -478,49 +439,11 @@ export default function SignupPage() {
                     "text-2xl md:text-3xl font-bold text-foreground mb-2",
                     isRtl && "font-urdu text-right"
                   )}>
-                    {t.auth.uploadCnic}
+                    Identity submission after sign-in
                   </h2>
                 </div>
 
-                <div
-                  {...getRootProps()}
-                  className={cn(
-                    "border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all",
-                    isDragActive
-                      ? "border-primary bg-primary/5"
-                      : formData.cnicImage
-                      ? "border-success bg-success/5"
-                      : "border-border hover:border-primary/50"
-                  )}
-                >
-                  <input {...getInputProps()} />
-                  <div className="flex flex-col items-center">
-                    {formData.cnicImage ? (
-                      <>
-                        <CheckCircle2 className="h-16 w-16 text-success mb-4" />
-                        <p className="text-lg font-medium text-foreground mb-2">
-                          {formData.cnicImage.name}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          Click or drag to replace
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="h-16 w-16 text-muted-foreground mb-4" />
-                        <p className={cn(
-                          "text-lg font-medium text-foreground mb-2",
-                          isRtl && "font-urdu"
-                        )}>
-                          {t.auth.dragDrop}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          PNG, JPG up to 10MB
-                        </p>
-                      </>
-                    )}
-                  </div>
-                </div>
+                <p className="rounded-xl border p-5 text-sm text-muted-foreground">Create and confirm your account first. Submit a document only from the authenticated identity page when secure submission is available. No identity file is collected during registration.</p>
 
                 <div className="bg-muted/50 rounded-xl p-4">
                   <div className="flex items-start gap-3">
@@ -530,7 +453,7 @@ export default function SignupPage() {
                         Why do we need your CNIC?
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        We verify all users to ensure a safe and trusted rental experience for everyone.
+                        Document submission and human review are separate from account creation. No NADRA or automatic AI verification is connected.
                       </p>
                     </div>
                   </div>
@@ -538,7 +461,7 @@ export default function SignupPage() {
               </motion.div>
             )}
 
-            {/* Step 4: AI Verification */}
+            {/* Step 4: Account registration */}
             {currentStep === 4 && (
               <motion.div
                 key="step4"
@@ -547,50 +470,13 @@ export default function SignupPage() {
                 exit={{ opacity: 0, scale: 0.9 }}
                 className="space-y-8 text-center py-12"
               >
-                <div className="relative w-48 h-48 mx-auto">
-                  <svg className="w-full h-full transform -rotate-90">
-                    <circle
-                      cx="96"
-                      cy="96"
-                      r="88"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="8"
-                      className="text-muted"
-                    />
-                    <motion.circle
-                      cx="96"
-                      cy="96"
-                      r="88"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="8"
-                      strokeLinecap="round"
-                      className="text-primary"
-                      initial={{ strokeDasharray: "0 553" }}
-                      animate={{ strokeDasharray: `${(trustScore / 100) * 553} 553` }}
-                      transition={{ duration: 0.5 }}
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <motion.span
-                      className="text-4xl font-bold text-foreground"
-                      key={trustScore}
-                      initial={{ scale: 1.2 }}
-                      animate={{ scale: 1 }}
-                    >
-                      {trustScore}%
-                    </motion.span>
-                    <span className="text-sm text-muted-foreground">Verification pending</span>
-                  </div>
-                </div>
 
                 <div>
                   <h2 className={cn(
                     "text-2xl font-bold text-foreground mb-2",
                     isRtl && "font-urdu"
                   )}>
-                    {isVerifying ? t.auth.trustScoreCalculating : "Registration submitted"}
+                    {isVerifying ? "Creating account" : "Registration submitted"}
                   </h2>
                   <p className="text-muted-foreground">
                     {isVerifying
@@ -603,7 +489,7 @@ export default function SignupPage() {
                   <div className="flex items-center justify-center gap-2">
                     <Sparkles className="h-5 w-5 text-primary animate-pulse" />
                     <span className="text-sm text-muted-foreground animate-pulse">
-                      Analyzing document authenticity...
+                      Waiting for account registration...
                     </span>
                   </div>
                 )}
@@ -639,11 +525,11 @@ export default function SignupPage() {
                     "text-muted-foreground mb-4",
                     isRtl && "font-urdu"
                   )}>
-                    Check your email to confirm your account. After signing in, upload your CNIC for admin review.
+                    Confirm your email if requested. After signing in, visit the identity page for submission availability and review status.
                   </p>
                   <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary">
                     <Sparkles className="h-4 w-4" />
-                    <span className="font-medium">Verification pending admin review</span>
+                    <span className="font-medium">Identity submission not completed</span>
                   </div>
                 </div>
 

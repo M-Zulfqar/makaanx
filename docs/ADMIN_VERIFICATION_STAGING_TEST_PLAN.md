@@ -1,5 +1,7 @@
 # MakaanX administrator verification — staging gate
 
+> Historical alternative only. The recommended v1 contract and current gates are in [IDENTITY_VERIFICATION_MILESTONE.md](IDENTITY_VERIFICATION_MILESTONE.md) and the consolidated staging guide. Do not apply the old proposals or grant broad document access from this older plan. No proposal is presumed deployed.
+
 Status: **not deployed, not approved for production**. This is a test plan for the proposed `supabase/migrations/20261112_admin_verification_proposed.sql`, not evidence that it has passed.
 
 ## Before any migration

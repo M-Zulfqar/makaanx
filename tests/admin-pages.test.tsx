@@ -35,13 +35,24 @@ test("invalid property filters do not query listings", async () => {
   expect(html).toContain('role="alert"'); expect(f.calls).toHaveLength(0);
 });
 test("verification queue excludes admins and counts all submitted rows, not just a sample", async () => {
-  const f = rentalClient([{ data: [{ id: propertyId, full_name: "Applicant", role: "tenant", verification_status: "pending" }], count: 99 }, { data: null, count: 4 }]); mocks.client.mockResolvedValue(f.client);
+  const f = rentalClient([roleReply("admin"), { data: [{ id: propertyId, full_name: "Applicant", role: "tenant", verification_status: "pending" }], count: 99 }]); mocks.client.mockResolvedValue(f.client);
   const html = renderToStaticMarkup(await Verifications()); expect(html).toContain(">99<");
-  for (const call of f.calls) expect(hasOperation(call, "in", "role", ["tenant", "landlord"])).toBe(true);
+  expect(hasOperation(f.calls[1], "in", "role", ["tenant", "landlord"])).toBe(true);
   expect(f.calls.flatMap(c => c.operations.filter(op => op.name === "select").map(op => String(op.args[0]))).join()).not.toContain("cnic_path");
 });
 test("settings no longer pretends to save, back up or monitor services", async () => {
   mocks.client.mockResolvedValue(rentalClient([]).client);
   const html = renderToStaticMarkup(await Settings());
   expect(html).toContain("No monitoring or backup provider is connected"); expect(html).not.toContain("Backup started"); expect(html).not.toContain("234 GB");
+});
+test("identity queue failure never displays SDK messages or a false zero", async () => {
+  const f = rentalClient([roleReply("admin"), {data:null,error:{code:"42501",message:"PRIVATE_PATH_OR_TOKEN"},count:null}]);mocks.client.mockResolvedValue(f.client);
+  const html=renderToStaticMarkup(await Verifications());expect(html).toContain('role="alert"');expect(html).not.toContain('PRIVATE_PATH_OR_TOKEN');expect(html).not.toContain('Exact accessible matching profiles');
+});
+test("identity queue invalid filters do not read data", async () => {
+  const f=rentalClient([]);mocks.client.mockResolvedValue(f.client);const html=renderToStaticMarkup(await Verifications({searchParams:Promise.resolve({role:"admin"})}));
+  expect(html).toContain('Check the queue filters');expect(f.calls).toHaveLength(0);
+});
+test("identity queue authorizes before reading any rows", async () => {
+  mocks.client.mockRejectedValue(new Error("DENIED"));await expect(Verifications()).rejects.toThrow("DENIED");
 });
