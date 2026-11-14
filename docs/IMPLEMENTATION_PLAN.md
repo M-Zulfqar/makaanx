@@ -456,3 +456,23 @@ rollback refuses drift/dependencies and restores admin own-only without row/ACL
 changes. CI adds the focused suite to the existing database job; actual status is
 recorded on the draft PR. No staging/production SQL, accounts, privilege changes,
 merge or deployment occurred; no staging repair is claimed.
+
+## Milestone 8D — Final admin security preflight
+
+15 November 2026. Continues the same draft PR #8; no new PR or feature gate.
+Reviewed the full migration/rollback and actual admin projections. Current table
+SELECT + admin row policy is broader than UI needs: contact/document-reference
+columns become cross-profile readable. Exact live inventory is BLOCKED pending
+new read-only preflight; a narrower admin projection is proposed, not implemented.
+
+Hardened privileged client/parent-role guards, unintended helper-reference
+activation and text-body rollback dependencies; added bounded idle transaction
+timeout. New preflight returns only metadata/hashes/shape flags and aggregates,
+not routine bodies, policy literals, identities or private document data. See
+ADMIN_ACCESS_FINAL_APPROVAL.md for all evidence, matrix, risks and NO-GO decision.
+
+Final local results: 28 focused and 35 regression PostgreSQL checks passed on
+16.16; 210 unit tests / 26 files passed; zero-warning lint, typecheck and production
+build passed with loopback/dummy configuration. No browser/live Supabase tests run
+in 8D. Updated CI status is recorded in PR #8. No staging SQL, policies/privileges,
+accounts, documents, merge, deployment or feature changes.

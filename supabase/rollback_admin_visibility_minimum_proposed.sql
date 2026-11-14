@@ -2,11 +2,19 @@
 BEGIN;
 SET LOCAL lock_timeout = '5s';
 SET LOCAL statement_timeout = '30s';
+SET LOCAL idle_in_transaction_session_timeout = '30s';
 SET LOCAL search_path = pg_catalog;
 LOCK TABLE public.profiles IN SHARE ROW EXCLUSIVE MODE;
 DO $guard$
 DECLARE f oid := to_regprocedure('public.makaanx_is_admin()');
 BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_class WHERE oid='public.profiles'::regclass AND relkind='r'
+    AND relowner='postgres'::regrole AND relrowsecurity AND NOT relforcerowsecurity AND NOT relispartition)
+    OR EXISTS (SELECT 1 FROM pg_inherits WHERE inhrelid='public.profiles'::regclass OR inhparent='public.profiles'::regclass)
+  THEN RAISE EXCEPTION 'Profiles relation/RLS baseline changed; stop rollback'; END IF;
+  IF EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+    WHERE n.nspname NOT IN ('pg_catalog','information_schema') AND p.proname<>'makaanx_is_admin' AND p.prosrc LIKE '%makaanx_is_admin%')
+  THEN RAISE EXCEPTION 'Routine text references helper; stop rollback for dependency review'; END IF;
   IF current_user<>'postgres' OR f IS NULL OR (SELECT count(*) FROM pg_proc WHERE proname='makaanx_is_admin')<>1
     OR NOT EXISTS (SELECT 1 FROM pg_proc p JOIN pg_language l ON l.oid=p.prolang WHERE p.oid=f
       AND p.proowner='postgres'::regrole AND p.prosecdef AND p.provolatile='s' AND p.pronargs=0

@@ -3,6 +3,7 @@
 BEGIN;
 SET LOCAL lock_timeout = '5s';
 SET LOCAL statement_timeout = '30s';
+SET LOCAL idle_in_transaction_session_timeout = '30s';
 SET LOCAL search_path = pg_catalog;
 LOCK TABLE public.profiles IN SHARE ROW EXCLUSIVE MODE;
 DO $guard$
@@ -13,6 +14,14 @@ BEGIN
     AND relowner='postgres'::regrole AND relrowsecurity AND NOT relforcerowsecurity AND NOT relispartition)
     OR EXISTS (SELECT 1 FROM pg_inherits WHERE inhrelid=t OR inhparent=t)
   THEN RAISE EXCEPTION 'Unexpected profiles ownership/relation/RLS baseline'; END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles client_role CROSS JOIN pg_roles parent_role
+    WHERE client_role.rolname IN ('anon','authenticated')
+      AND (parent_role.rolsuper OR parent_role.rolbypassrls OR parent_role.rolcreaterole OR parent_role.rolname='postgres')
+      AND pg_has_role(client_role.oid,parent_role.oid,'MEMBER'))
+  THEN RAISE EXCEPTION 'Unexpected client role attributes or owner membership'; END IF;
+  IF EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+    WHERE n.nspname NOT IN ('pg_catalog','information_schema') AND p.proname<>'makaanx_is_admin' AND p.prosrc LIKE '%makaanx_is_admin%')
+  THEN RAISE EXCEPTION 'Other routines reference helper; review unintended activation first'; END IF;
   IF EXISTS (SELECT 1 FROM pg_proc WHERE proname='makaanx_is_admin')
   THEN RAISE EXCEPTION 'Unexpected helper or overload in some schema'; END IF;
   IF (SELECT count(*) FROM pg_attribute WHERE attrelid=t AND attname IN ('id','role','verification_status','verification_score','trust_score','cnic_path') AND NOT attisdropped)<>6

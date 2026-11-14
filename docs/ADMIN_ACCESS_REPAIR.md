@@ -1,5 +1,8 @@
 # Minimum administrator visibility repair — security review package
 
+> Milestone 8D: see ADMIN_ACCESS_FINAL_APPROVAL.md. Current decision is NO-GO.
+> Live preflight and data-scope approval are missing; this is not an execution plan approval.
+
 15 November 2026 (Asia/Karachi). Base PR #7 (`dc72da3`); branch
 `feature/admin-access-minimum-repair`, stacked draft onto
 `feature/backend-integration-readiness`. **Proposed only. No staging/production
