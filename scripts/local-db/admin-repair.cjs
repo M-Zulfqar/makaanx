@@ -10,7 +10,9 @@ const migration=readFileSync('supabase/migrations/20261115_admin_visibility_mini
 const rollback=readFileSync('supabase/rollback_admin_visibility_minimum_proposed.sql','utf8');
 const verify=readFileSync('supabase/verify_admin_visibility_minimum_readonly.sql','utf8');
 const preflight=readFileSync('supabase/preflight_admin_visibility_minimum_readonly.sql','utf8');
-for(const [kind,text] of [['migration',migration],['rollback',rollback],['verification',verify],['preflight',preflight]])report.sources.push({kind,sha256:createHash('sha256').update(text).digest('hex')});
+const supplemental=readFileSync('supabase/preflight_admin_pg17_acl_readonly.sql','utf8');
+const privateInspection=readFileSync('supabase/inspect_admin_dependencies_owner_private_readonly.sql','utf8');
+for(const [kind,text] of [['migration',migration],['rollback',rollback],['verification',verify],['preflight',preflight],['supplemental',supplemental],['privateInspection',privateInspection]])report.sources.push({kind,sha256:createHash('sha256').update(text).digest('hex')});
 const code=r=>r.err.match(/ERROR:\s+([A-Z0-9]{5}):/)?.[1]||'UNKNOWN';
 async function ok(role,text){const r=await sql(name,role,text);if(r.code){const e=Error();e.safeMessage=`Local actor/setup SQL failed (${code(r)})`;throw e;}return r.out;}
 const owner=text=>ok('postgres',text);
@@ -28,8 +30,30 @@ const snapshot=()=>owner(`SELECT jsonb_build_object('acl',(SELECT relacl::text F
  ('20000000-0000-4000-8000-000000000001','{"role":"landlord"}'),('50000000-0000-4000-8000-000000000001','{"role":"tenant"}');
  UPDATE public.profiles SET role='admin' WHERE id='50000000-0000-4000-8000-000000000001';
  UPDATE public.profiles SET phone='SYNTHETIC_CONTACT',cnic_path='SYNTHETIC_DOCUMENT_REFERENCE' WHERE id='10000000-0000-4000-8000-000000000004';`);
+ await owner('CREATE ROLE service_role NOLOGIN NOSUPERUSER NOBYPASSRLS;');
+ const defaultSnapshot=()=>owner("SELECT md5(coalesce(string_agg(row_to_json(d)::text,'|' ORDER BY oid),'')) FROM pg_default_acl d;");
+ const functionIds=['public.makaanx_is_admin()','public.makaanx_admin_profiles(text,text,text,text,boolean,uuid[],integer,integer)','public.makaanx_admin_profile_counts(text,text,text,text,boolean,uuid[])'];
  const before=await snapshot();
- await test('new preflight runs read-only before repair and preserves data/ACLs',async()=>{await owner(preflight);assert.equal(await snapshot(),before);});
+
+ await test('role-absent installations repair and roll back without a managed role dependency',async()=>{await owner('DROP ROLE service_role;');try{await owner(migration);assert.equal(await ok('admin_user','SELECT total FROM public.makaanx_admin_profile_counts();'),'6');await owner(rollback);assert.equal(await snapshot(),before);}finally{await owner('CREATE ROLE service_role NOLOGIN NOSUPERUSER NOBYPASSRLS;');}});
+ await test('managed global and schema defaults propagate; targeted revocation preserves defaults and existing functions',async()=>{
+   for(const scope of ['', ' IN SCHEMA public']){
+     await owner(`ALTER DEFAULT PRIVILEGES FOR ROLE postgres${scope} GRANT EXECUTE ON FUNCTIONS TO service_role WITH GRANT OPTION;CREATE FUNCTION public.local_existing_managed() RETURNS boolean LANGUAGE sql AS $$SELECT false$$;`);
+     const defaults=await defaultSnapshot();
+     // Reproduce the reviewed old grant pattern, retaining its fail-closed guard.
+     const withoutTargetedRevoke=migration.replace(/DO \$revoke_managed_executor\$[\s\S]*?END \$revoke_managed_executor\$;/,'');
+     assert.notEqual(withoutTargetedRevoke,migration);
+     await denied('postgres',withoutTargetedRevoke,'P0001');
+     assert.equal(await owner("SELECT to_regprocedure('public.makaanx_is_admin()') IS NULL;"),'t');
+     await owner(migration);
+     for(const signature of functionIds){assert.equal(await owner(`SELECT has_function_privilege('service_role','${signature}','EXECUTE');`),'f');assert.equal(await owner(`SELECT has_function_privilege('anon','${signature}','EXECUTE');`),'f');}
+     assert.equal(await owner("SELECT has_function_privilege('service_role','public.local_existing_managed()','EXECUTE');"),'t');
+     assert.equal(await defaultSnapshot(),defaults);assert.equal(await snapshot(),before);
+     await owner(rollback);assert.equal(await defaultSnapshot(),defaults);assert.equal(await snapshot(),before);
+     await owner(`DROP FUNCTION public.local_existing_managed();ALTER DEFAULT PRIVILEGES FOR ROLE postgres${scope} REVOKE EXECUTE ON FUNCTIONS FROM service_role;`);
+   }
+ });
+ await test('new preflight runs read-only before repair and preserves data/ACLs',async()=>{await owner(preflight);await owner(supplemental);await owner(privateInspection);assert.equal(await snapshot(),before);});
  await test('baseline reproduces missing SQL helper and admin own-row visibility',async()=>{await denied('admin_user','SELECT public.makaanx_is_admin();','42883');assert.equal(await ok('admin_user','SELECT count(*) FROM public.profiles;'),'1');});
  async function refused(label,setup,cleanup){await test(label,async()=>{await owner(setup);try{await denied('postgres',migration,'P0001');assert.equal(await owner("SELECT to_regprocedure('public.makaanx_is_admin()') IS NULL;"),'t');}finally{await owner(cleanup);}});}
  await refused('unexpected restrictive SELECT policy aborts without helper creation',"CREATE POLICY local_extra ON public.profiles AS RESTRICTIVE FOR SELECT TO authenticated USING(true);",'DROP POLICY local_extra ON public.profiles;');
@@ -45,6 +69,13 @@ const snapshot=()=>owner(`SELECT jsonb_build_object('acl',(SELECT relacl::text F
  await refused('existing routine helper reference aborts unintended activation',"CREATE FUNCTION public.local_old_review() RETURNS boolean LANGUAGE plpgsql SECURITY DEFINER AS $$BEGIN RETURN public.makaanx_is_admin();END$$;",'DROP FUNCTION public.local_old_review();');
  await refused('FORCE RLS drift aborts','ALTER TABLE public.profiles FORCE ROW LEVEL SECURITY;','ALTER TABLE public.profiles NO FORCE ROW LEVEL SECURITY;');
  await refused('unexpected function default EXECUTE causes complete rollback','CREATE ROLE local_extra_executor NOLOGIN;ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO local_extra_executor;','ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE EXECUTE ON FUNCTIONS FROM local_extra_executor;DROP ROLE local_extra_executor;');
+ await refused('unknown global default executor still aborts atomically','CREATE ROLE local_extra_executor NOLOGIN;ALTER DEFAULT PRIVILEGES FOR ROLE postgres GRANT EXECUTE ON FUNCTIONS TO local_extra_executor;','ALTER DEFAULT PRIVILEGES FOR ROLE postgres REVOKE EXECUTE ON FUNCTIONS FROM local_extra_executor;DROP ROLE local_extra_executor;');
+ await refused('service_role inherited authenticated EXECUTE cannot be hidden by direct revoke','GRANT authenticated TO service_role;','REVOKE authenticated FROM service_role;');
+ await refused('service_role SET-role membership fails even without inheritance','GRANT authenticated TO service_role WITH INHERIT FALSE;','REVOKE authenticated FROM service_role;');
+ if(Number(report.engine.split('.')[0])>=17){
+   await refused('PostgreSQL 17 MAINTAIN privilege drift aborts','GRANT MAINTAIN ON public.profiles TO authenticated;','REVOKE MAINTAIN ON public.profiles FROM authenticated;');
+   await refused('inherited pg_maintain privilege drift aborts','GRANT pg_maintain TO authenticated;','REVOKE pg_maintain FROM authenticated;');
+ }
  await test('helper overload in any schema aborts without replacing it',async()=>{await owner('CREATE SCHEMA local_other;CREATE FUNCTION local_other.makaanx_is_admin(integer) RETURNS boolean LANGUAGE sql AS $$SELECT false$$;');try{await denied('postgres',migration,'P0001');assert.equal(await owner("SELECT count(*) FROM pg_proc WHERE proname='makaanx_is_admin';"),'1');}finally{await owner('DROP FUNCTION local_other.makaanx_is_admin(integer);DROP SCHEMA local_other;');}});
  await refused('projection type drift aborts','ALTER TABLE public.profiles ALTER COLUMN full_name TYPE varchar(200);','ALTER TABLE public.profiles ALTER COLUMN full_name TYPE text;');
  await refused('new RPC overload aborts','CREATE FUNCTION public.makaanx_admin_profiles(integer) RETURNS boolean LANGUAGE sql AS $$SELECT false$$;','DROP FUNCTION public.makaanx_admin_profiles(integer);');
@@ -68,6 +99,8 @@ const snapshot=()=>owner(`SELECT jsonb_build_object('acl',(SELECT relacl::text F
  await test('rollback refuses helper body drift and preserves policy',async()=>{await owner("CREATE OR REPLACE FUNCTION public.makaanx_is_admin() RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$SELECT false$$;");try{await denied('postgres',rollback,'P0001');assert.equal(await owner("SELECT count(*) FROM pg_policies WHERE schemaname='public' AND tablename='profiles' AND policyname='profiles_select_own';"),'1');}finally{await owner("CREATE OR REPLACE FUNCTION public.makaanx_is_admin() RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $body$SELECT EXISTS (SELECT 1 FROM public.profiles AS p WHERE p.id = (SELECT auth.uid()) AND p.role = 'admin');$body$;");}});
  await test('rollback RESTRICT protects unexpected dependent objects atomically',async()=>{await owner('CREATE VIEW public.local_dependency AS SELECT public.makaanx_is_admin() AS allowed;');try{await denied('postgres',rollback,'2BP01');assert.equal(await ok('admin_user','SELECT count(*) FROM public.makaanx_admin_profiles();'),'6');}finally{await owner('DROP VIEW public.local_dependency;');}});
  await test('rollback refuses text-body routine dependencies not captured by RESTRICT',async()=>{await owner('CREATE FUNCTION public.local_text_dependency() RETURNS boolean LANGUAGE sql AS $$SELECT public.makaanx_is_admin()$$;');try{assert.equal(await owner("SELECT count(*) FROM pg_depend WHERE classid='pg_proc'::regclass AND objid='public.local_text_dependency()'::regprocedure AND refobjid='public.makaanx_is_admin()'::regprocedure;"),'0');await denied('postgres',rollback,'P0001');assert.equal(await ok('admin_user','SELECT count(*) FROM public.makaanx_admin_profiles();'),'6');}finally{await owner('DROP FUNCTION public.local_text_dependency();');}});
+ await test('rollback refuses inherited service_role EXECUTE drift without destructive effects',async()=>{await owner('GRANT authenticated TO service_role WITH INHERIT FALSE;');try{await denied('postgres',rollback,'P0001');assert.equal(await ok('admin_user','SELECT total FROM public.makaanx_admin_profile_counts();'),'6');}finally{await owner('REVOKE authenticated FROM service_role;');}});
+ await test('rollback rejects direct service_role grant drift without removing functions',async()=>{await owner('GRANT EXECUTE ON FUNCTION public.makaanx_is_admin() TO service_role;');try{await denied('postgres',rollback,'P0001');assert.equal(await ok('admin_user','SELECT total FROM public.makaanx_admin_profile_counts();'),'6');}finally{await owner('REVOKE ALL ON FUNCTION public.makaanx_is_admin() FROM service_role;');}});
  await test('exact rollback removes only repair; own policy/ACLs/data survive',async()=>{await owner(rollback);assert.equal(await snapshot(),before);assert.equal(await ok('admin_user','SELECT count(*) FROM public.profiles;'),'1');await denied('admin_user','SELECT public.makaanx_is_admin();','42883');assert.equal(await owner("SELECT count(*) FROM pg_policies WHERE schemaname='public' AND tablename='profiles' AND cmd IN('SELECT','ALL');"),'1');});
  console.log(`${report.tests.length} focused PostgreSQL admin-repair checks passed; ${report.engine}; no staging execution.`);
  }catch(e){report.failure=e.safeMessage||'Focused local check/setup failed (details suppressed)';console.error(report.failure);process.exitCode=1;}

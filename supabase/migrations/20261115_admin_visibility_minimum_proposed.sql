@@ -53,7 +53,7 @@ BEGIN
   THEN RAISE EXCEPTION 'Unexpected authenticated/anonymous membership or read grants'; END IF;
   FOR r IN SELECT x::text AS actor FROM unnest(ARRAY['anon','authenticated']) x LOOP
     IF has_schema_privilege(r.actor,'public','CREATE') OR has_schema_privilege(r.actor,'auth','CREATE')
-      OR has_table_privilege(r.actor,t,'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
+      OR has_table_privilege(r.actor,t,CASE WHEN current_setting('server_version_num')::integer>=170000 THEN 'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER,MAINTAIN' ELSE 'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER' END)
     THEN RAISE EXCEPTION 'Unexpected schema or table write privilege'; END IF;
     FOR c IN SELECT attname FROM pg_attribute WHERE attrelid=t AND attnum>0 AND NOT attisdropped LOOP
       IF has_column_privilege(r.actor,t,c.attname,'INSERT,REFERENCES')
@@ -139,6 +139,16 @@ ALTER FUNCTION public.makaanx_admin_profile_counts(text,text,text,text,boolean,u
 REVOKE ALL ON FUNCTION public.makaanx_admin_profile_counts(text,text,text,text,boolean,uuid[]) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.makaanx_admin_profile_counts(text,text,text,text,boolean,uuid[]) TO authenticated;
 COMMENT ON FUNCTION public.makaanx_admin_profile_counts(text,text,text,text,boolean,uuid[]) IS 'MakaanX least privilege admin access 2026-11-15';
+-- Managed defaults stay untouched. Remove only this known unnecessary executor
+-- from these three newly created objects, then retain the strict postconditions.
+DO $revoke_managed_executor$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname='service_role') THEN
+    REVOKE ALL ON FUNCTION public.makaanx_is_admin() FROM service_role;
+    REVOKE ALL ON FUNCTION public.makaanx_admin_profiles(text,text,text,text,boolean,uuid[],integer,integer) FROM service_role;
+    REVOKE ALL ON FUNCTION public.makaanx_admin_profile_counts(text,text,text,text,boolean,uuid[]) FROM service_role;
+  END IF;
+END $revoke_managed_executor$;
 DO $verify$
 DECLARE t oid := 'public.profiles'::regclass; f oid := 'public.makaanx_is_admin()'::regprocedure;
 BEGIN
@@ -150,6 +160,8 @@ BEGIN
       WHERE p.oid=f AND (a.grantee NOT IN ('postgres'::regrole::oid,'authenticated'::regrole::oid)
         OR (a.grantee='authenticated'::regrole::oid AND a.is_grantable)))
       OR has_function_privilege('anon',f,'EXECUTE') OR NOT has_function_privilege('authenticated',f,'EXECUTE')
+      OR EXISTS (SELECT 1 FROM pg_roles executor WHERE executor.rolname='service_role' AND (has_function_privilege(executor.oid,f,'EXECUTE')
+        OR pg_has_role(executor.oid,'authenticated'::regrole,'MEMBER') OR pg_has_role(executor.oid,'postgres'::regrole,'MEMBER')))
     THEN RAISE EXCEPTION 'Unexpected function defaults/inherited EXECUTE grants'; END IF;
   END LOOP;
   IF current_setting('makaanx.admin_repair_acl') IS DISTINCT FROM

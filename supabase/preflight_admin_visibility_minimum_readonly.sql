@@ -28,7 +28,7 @@ SELECT r.rolname,r.rolsuper,r.rolbypassrls,r.rolcreaterole,r.rolinherit,
  has_schema_privilege(r.oid,'public','USAGE') AS public_usage,has_schema_privilege(r.oid,'public','CREATE') AS public_create,
  has_schema_privilege(r.oid,'auth','CREATE') AS auth_create,has_schema_privilege(r.oid,'auth','USAGE') AS auth_usage,
  has_table_privilege(r.oid,'public.profiles','SELECT') AS profile_select,
- has_table_privilege(r.oid,'public.profiles','INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') AS dangerous_table_grant
+ has_table_privilege(r.oid,'public.profiles',CASE WHEN current_setting('server_version_num')::integer>=170000 THEN 'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER,MAINTAIN' ELSE 'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER' END) AS dangerous_table_grant
 FROM pg_roles r WHERE r.rolname IN('anon','authenticated') ORDER BY r.rolname;
 SELECT r.rolname AS actor,a.attname AS column_name,
  has_column_privilege(r.oid,a.attrelid,a.attnum,'SELECT') AS can_select,
@@ -51,7 +51,7 @@ WITH o AS (SELECT oid FROM pg_roles WHERE rolname='postgres'), defaults AS (
  SELECT 'public_addition',x.* FROM o JOIN pg_default_acl d ON d.defaclrole=o.oid
   CROSS JOIN LATERAL aclexplode(d.defaclacl) x WHERE d.defaclnamespace='public'::regnamespace AND d.defaclobjtype='f'
 ) SELECT scope,CASE WHEN grantee=0 THEN 'PUBLIC' ELSE pg_get_userbyid(grantee) END AS grantee,privilege_type,is_grantable,
- grantee NOT IN(0,'postgres'::regrole::oid,'anon'::regrole::oid,'authenticated'::regrole::oid) AS would_survive_revoke_and_abort
+ grantee NOT IN(0,'postgres'::regrole::oid,'anon'::regrole::oid,'authenticated'::regrole::oid) AND pg_get_userbyid(grantee)<>'service_role' AS unknown_default_recipient_would_abort
 FROM defaults ORDER BY scope,grantee;
 SELECT n.nspname,p.oid::regprocedure AS signature,p.prokind,pg_get_userbyid(p.proowner) AS owner,p.prosecdef,p.provolatile,
  ARRAY(SELECT setting FROM unnest(p.proconfig) setting WHERE setting LIKE 'search_path=%' OR setting LIKE 'row_security=%') AS relevant_settings,
@@ -71,6 +71,11 @@ FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
  CROSS JOIN LATERAL aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a
 WHERE p.proname IN('makaanx_is_admin','makaanx_admin_profiles','makaanx_admin_profile_counts')
 ORDER BY n.nspname,p.oid::regprocedure::text,grantee;
+SELECT p.oid::regprocedure AS signature,executor.oid IS NOT NULL AS service_role_exists,
+ CASE WHEN executor.oid IS NULL THEN false ELSE has_function_privilege(executor.oid,p.oid,'EXECUTE') END AS service_role_effective_execute,
+ CASE WHEN executor.oid IS NULL THEN false ELSE pg_has_role(executor.oid,'authenticated'::regrole,'MEMBER') OR pg_has_role(executor.oid,'postgres'::regrole,'MEMBER') END AS service_role_can_reach_executor
+FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace LEFT JOIN pg_roles executor ON executor.rolname='service_role'
+WHERE n.nspname='public' AND p.proname IN('makaanx_is_admin','makaanx_admin_profiles','makaanx_admin_profile_counts') ORDER BY p.proname;
 SELECT c.oid::regclass AS relation,t.tgname,t.tgfoid::regprocedure AS routine,t.tgenabled,t.tgtype,t.tgnargs,
  pg_get_userbyid(f.proowner) AS function_owner,f.prosecdef,md5(f.prosrc) AS function_source_hash
 FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_proc f ON f.oid=t.tgfoid WHERE NOT t.tgisinternal

@@ -503,3 +503,34 @@ no staging connection/SQL, real accounts/documents, merge or deployment occurred
   owner-label browser selector; their final reruns passed. No unresolved local
   test failure. Actual Supabase/JWT acceptance remains BLOCKED.
 - Updated GitHub Actions status is recorded on PR #8 for the final commit.
+
+## Milestone 8F — PostgreSQL 17 / managed function ACL compatibility
+
+15 November 2026. Existing draft PR #8; starting da0100b. Owner-supplied Copilot
+preflight confirms PG17.11 and service_role function defaults. Exact global/schema
+provenance remains unknown; supplemental metadata and separately approved private
+routine inspection are prepared, not run live. Only new RPC service_role EXECUTE
+is revoked; defaults/existing functions/profile policies/grants stay unchanged.
+Unknown executors and inherited/SET-role access still abort. Added PG17 MAINTAIN
+checks, pinned 17.11 amd64 image and required PG16/17 CI matrix. See
+ADMIN_PG17_COMPATIBILITY.md for full reconciliation and live blockers. Staging NO-GO.
+
+### Executed 8F validation
+
+- PostgreSQL **17.11** pinned amd64 Alpine: **48 focused checks + 35 domain
+  regression checks passed**. Includes both managed default ACL scopes, role-absent
+  installation, effective EXECUTE/SET membership, MAINTAIN/pg_maintain, privacy,
+  authorization, filters/pages and atomic migration/rollback.
+- PostgreSQL **16.16** pinned image: **46 focused + 35 domain regression checks
+  passed** (the two PG17-only MAINTAIN cases are conditional).
+- **224 unit tests / 27 files passed**; zero-warning lint, typecheck, loopback/dummy
+  production build and diff check passed.
+- **118 local production browser checks passed**: general 22, admin 22, identity
+  42, messaging 32. Synthetic loopback fixtures only, no actual Supabase/JWT claim.
+- Initial image pull/setup was interrupted by local Docker disk pressure; removed
+  only regenerable task caches and reran sequentially to completion. A new test
+  environment typing error (missing NODE_ENV) was corrected; final build/typecheck
+  passed. No unresolved local failure. Earlier interrupted logs are not final evidence.
+- Both SQL/private-inspection scripts were syntax/execution checked only against
+  synthetic local catalogs; no live bodies or private values were obtained.
+- Final commit and actual GitHub Actions matrix results are recorded in PR #8.

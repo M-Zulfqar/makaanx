@@ -41,7 +41,7 @@ BEGIN
   THEN RAISE EXCEPTION 'Unexpected authenticated/anonymous membership or read grants'; END IF;
   FOR r IN SELECT x::text AS actor FROM unnest(ARRAY['anon','authenticated']) x LOOP
     IF has_schema_privilege(r.actor,'public','CREATE') OR has_schema_privilege(r.actor,'auth','CREATE')
-      OR has_table_privilege(r.actor,t,'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER')
+      OR has_table_privilege(r.actor,t,CASE WHEN current_setting('server_version_num')::integer>=170000 THEN 'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER,MAINTAIN' ELSE 'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER' END)
     THEN RAISE EXCEPTION 'Unexpected schema or table write privilege'; END IF;
     FOR c IN SELECT attname FROM pg_attribute WHERE attrelid=t AND attnum>0 AND NOT attisdropped LOOP
       IF has_column_privilege(r.actor,t,c.attname,'INSERT,REFERENCES')
@@ -72,6 +72,8 @@ BEGIN
         WHERE p.oid=f AND (a.grantee NOT IN ('postgres'::regrole::oid,'authenticated'::regrole::oid)
           OR (a.grantee='authenticated'::regrole::oid AND a.is_grantable)))
       OR has_function_privilege('anon',f,'EXECUTE') OR NOT has_function_privilege('authenticated',f,'EXECUTE')
+      OR EXISTS (SELECT 1 FROM pg_roles executor WHERE executor.rolname='service_role' AND (has_function_privilege(executor.oid,f,'EXECUTE')
+        OR pg_has_role(executor.oid,'authenticated'::regrole,'MEMBER') OR pg_has_role(executor.oid,'postgres'::regrole,'MEMBER')))
     THEN RAISE EXCEPTION 'Administrator function drift; stop rollback'; END IF;
   END LOOP;
   IF (SELECT count(*) FROM pg_policies WHERE schemaname='public' AND tablename='profiles' AND cmd IN('SELECT','ALL'))<>1

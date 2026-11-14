@@ -320,3 +320,13 @@ boolean are the complete row contract; contact/path/score columns remain own-onl
 Admin profile metrics use safe aggregates; rental metrics keep existing RLS scope.
 Diagnostics distinguish admin-projection from own-rls count paths. See
 ADMIN_ACCESS_FINAL_APPROVAL.md for evidence, current SQL and NO-GO live decision.
+
+## Milestone 8F compatibility follow-up — 15 November 2026
+
+Copilot metadata supplied by owner confirms PG17.11 and an extra managed
+service_role default EXECUTE recipient, which the 8E grant pattern correctly
+refused. Targeted new-object revocation preserves global/default/existing grants.
+PG17 MAINTAIN is now checked; unknown/inherited executors still fail closed.
+Exact default provenance and live writer semantics are not supplied; see
+ADMIN_PG17_COMPATIBILITY.md for the guard-by-guard matrix and read-only evidence
+requests. No live connection or execution occurred; staging remains NO-GO.

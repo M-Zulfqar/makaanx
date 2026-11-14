@@ -1,11 +1,13 @@
-# Administrator access — least-privilege approval package (8E)
+# Administrator access — least-privilege approval package (8F)
 
 15 November 2026 (Asia/Karachi). Existing draft PR #8, stacked on PR #7.
 **Staging decision: NO-GO / BLOCKED pending live preflight and separate approval.**
-This replaces the unexecuted 8C/8D broad-read proposal reviewed at 45075b2. Do not
+8E replaced the unexecuted broad-read proposal. 8F updates the da0100b package
+for observed PostgreSQL 17.11 and managed default ACL compatibility. See
+[guard reconciliation and routine review](ADMIN_PG17_COMPATIBILITY.md). Do not
 execute SQL excerpts from that revision or historical administrator bundles.
 No staging/production connection, SQL, real accounts/documents, merge, deployment,
-Storage grant or unrelated feature activation occurred in 8E.
+Storage grant or unrelated feature activation occurred in 8E/8F.
 
 ## Confirmed evidence and remaining prerequisites
 
@@ -13,9 +15,13 @@ Owner supplied: project ficudncgevvxsxbjscrk; six profiles (admin 1, landlord 1,
 tenant 4); current admin sees one; helper absent in every schema; only own-profile
 SELECT policy; RLS on/FORCE off; diagnostics PGRST202. Missing helper and own-only
 RLS explain these symptoms. Existing authenticated USAGE/SELECT and protected
-column UPDATE restrictions were reported. Full live schema/grants remain unknown.
+column UPDATE restrictions were reported. The owner now reports Copilot read-only findings: PostgreSQL 17.11, postgres-owned
+profiles, RLS on/FORCE off/no inheritance/partitioning, own SELECT/UPDATE policy
+names, absent new RPCs, no privileged client parents, managed service_role default
+EXECUTE, existing makaanx_submit_cnic(text) and handle_new_user trigger. These
+summaries do not supply every exact guard value; the 8F matrix distinguishes them.
 
-**BLOCKED:** live relation/schema ownership, PostgreSQL version, exact types,
+**BLOCKED:** remaining exact relation/schema/actor attributes, types,
 policy shapes, inherited grants/role attributes, function default ACLs, callable
 SECURITY DEFINER routines/alternate role writers, trigger definitions, auth.uid
 semantics, PostgREST exposure/cache, real JWT propagation and backup/window.
@@ -44,7 +50,9 @@ static SQL and no writes, target administrator parameter or dynamic SQL. Postgre
 is the required trusted owner of profiles and functions; FORCE must be off so the
 helper does not recursively apply profiles RLS. Owner identity is not caller-
 controlled. Revoked PUBLIC/anon EXECUTE; authenticated non-grantable EXECUTE only,
-with extra default/inherited executors causing atomic refusal.
+with unknown default/inherited executors causing atomic refusal. 8F explicitly
+revokes managed service_role EXECUTE only on the three new signatures; it does
+not allow service_role as an executor or change global defaults/existing functions.
 
 No cross-profile phone, raw CNIC paths, trust/verification scores or Storage objects
 are returned. `has_document` means cnic_path IS NOT NULL, not valid, authentic,
@@ -126,7 +134,7 @@ All after-results above are **local synthetic evidence**, not live acceptance.
    repeatable-read metadata/hash/shape/aggregate inventory; 15-second statement
    timeout; no identities, paths, bodies, policy literals or trigger arguments.
 2. `supabase/migrations/20261115_admin_visibility_minimum_proposed.sql`: revised
-   8E migration in the existing unexecuted filename; execute **this file only**,
+   8F revision of the migration in the existing unexecuted filename; execute **this file only**,
    not a migration directory push or historical bundles, after separate approval.
 3. `supabase/verify_admin_visibility_minimum_readonly.sql`: metadata/aggregate
    verification; compare source hashes with exact rollback body_hash constants.
@@ -137,8 +145,10 @@ Migration rejects unexpected functions/overloads anywhere, literal references in
 other routines (unintended activation), RLS/owner/inheritance/type/policy drift,
 dangerous inherited/write/schema grants and changed 6/1/1/4 aggregates. It preserves
 all existing policies and table/column ACLs and verifies hashes before commit.
-Default function grants to extra roles abort the whole transaction. A managed
-Supabase default may differ from local PG: inspect it; do not weaken the guard.
+Known service_role default grants are removed only on these new objects. Unknown
+recipients or remaining effective/SET-role service access abort the transaction.
+The precise live global/schema/grantor source still needs the supplemental query.
+PostgreSQL 17 MAINTAIN and inherited pg_maintain access also cause refusal.
 
 Rollback verifies relation/RLS/type/policy/grant baseline, exact signatures,
 reviewed source hashes, output types, owner/language/settings/comment/EXECUTE,
@@ -183,7 +193,7 @@ files or writing account fields. Missing RPC/PGRST202 after confirmed creation
 requires discovery/cache/exposure investigation, not reapplying CREATE. Any manual
 cache notification/reload needs separate approval; it is not part of preflight.
 
-## Validation and decision
+## Validation and decision (8E history; current 8F evidence below)
 
 Final actual local/CI counts are recorded in the PR and implementation plan after
 execution. PostgreSQL uses isolated disposable network-none fixtures and real
@@ -193,14 +203,14 @@ Build uses loopback/dummy public configuration. No dependencies or feature gates
 are changed by 8E.
 
 **NO-GO for staging execution.** The broad-column privacy defect is resolved by the
-proposed implementation. Live baseline/routine/default-ACL/version compatibility,
+proposed implementation. Remaining exact live baseline/routine/default-ACL provenance compatibility,
 backup/window and owner acceptance of the five-field projection + safe aggregates
 still require review. Next: ChatGPT reviews exact revised files; owner supplies
 only missing read-only metadata after review; Codex reconciles evidence locally.
 Copilot may review the same diff/tests; it must not apply SQL or enable features.
 No staging execution, merge, deployment or account mutation approval is requested.
 
-### Executed 8E validation
+### Historical executed 8E validation
 
 - `npm run test:db:admin-repair`: **39 passed**, PostgreSQL **16.16**.
 - `npm run test:db:local`: **35 passed**, PostgreSQL **16.16**.
@@ -214,7 +224,7 @@ No staging execution, merge, deployment or account mutation approval is requeste
   test failure. Actual Supabase/JWT acceptance remains BLOCKED.
 - Updated GitHub Actions status is recorded on PR #8 for the final commit.
 
-## Exact 8E changed-file manifest
+## Historical exact 8E changed-file manifest
 
 - `app/admin/users/page.tsx`
 - `app/admin/verifications/page.tsx`
@@ -244,3 +254,58 @@ No staging execution, merge, deployment or account mutation approval is requeste
 - `tests/admin-profiles.test.ts`
 - `tests/helpers/rental-client.ts`
 - `tests/identity-queue.test.ts`
+
+## Current 8F review additions
+
+See ADMIN_PG17_COMPATIBILITY.md for every baseline guard/prerequisite, supplied
+staging evidence, match/mismatch/unknown status, security consequence and action.
+New files: `supabase/preflight_admin_pg17_acl_readonly.sql` (supplemental safe
+metadata/provenance) and `supabase/inspect_admin_dependencies_owner_private_readonly.sql`
+(separate owner-private definition review; do not share outputs). Neither was run
+live. No authoritative live routine body evidence was obtained. Known repository
+writers do not set a caller-supplied admin role; exact live bodies remain BLOCKED.
+
+The three RPC bodies and explicit output contracts are unchanged from 8E. Only
+scoped ACL normalization, stronger effective/membership postconditions, PG17
+maintenance checks and test/metadata/CI compatibility change. Independently verified
+body MD5 values still match the exact rollback constants; no body-hash update is
+needed. SQL file SHA256 values below identify this revision; the resulting commit
+and CI URL are recorded on existing PR #8 and in the owner handoff (a document
+cannot embed its own future commit hash). Review current files, not old excerpts.
+
+The existing backup/window, 5s lock / 30s statement / 30s idle transaction timeouts,
+atomic rollback, restricted profile outputs, real-session scope-labelled diagnostics
+and separate release/rollback approvals still apply. Postflight checks include
+object ACL inventory and explicit effective/member service_role denial. Local
+PG17 success is not evidence that all managed staging guards pass.
+
+### Exact current SQL SHA256
+
+| File | SHA256 |
+| --- | --- |
+| `supabase/migrations/20261115_admin_visibility_minimum_proposed.sql` | `4ea38e475d9d034ab062fac484af14a0af7b5cd9f4688b76f609b55cc97f9d14` |
+| `supabase/rollback_admin_visibility_minimum_proposed.sql` | `8a377f275fd902d5ba7887d25c4ed1e00f716d0ab09ce02f7023a2be220fa89b` |
+| `supabase/preflight_admin_visibility_minimum_readonly.sql` | `f31e1d9ddf5fcc3e59e475fe125f4d26803956b08eebc681c38b5e1e44e32ae9` |
+| `supabase/preflight_admin_pg17_acl_readonly.sql` | `99304817f33d481a9ab931b8b3222a718cc89adb4ea7ecf2efc6d982186bc1c4` |
+| `supabase/inspect_admin_dependencies_owner_private_readonly.sql` | `4bc86df1f41cbc9de668fc20bde370d1edb37e692c68d8d6ec39a3fc55dffc6b` |
+| `supabase/verify_admin_visibility_minimum_readonly.sql` | `33a20968b65c6df842882e5ddcfa402169bb7554598a4a316afad73dffd0bd32` |
+
+### Executed 8F validation
+
+- PostgreSQL **17.11** pinned amd64 Alpine: **48 focused checks + 35 domain
+  regression checks passed**. Includes both managed default ACL scopes, role-absent
+  installation, effective EXECUTE/SET membership, MAINTAIN/pg_maintain, privacy,
+  authorization, filters/pages and atomic migration/rollback.
+- PostgreSQL **16.16** pinned image: **46 focused + 35 domain regression checks
+  passed** (the two PG17-only MAINTAIN cases are conditional).
+- **224 unit tests / 27 files passed**; zero-warning lint, typecheck, loopback/dummy
+  production build and diff check passed.
+- **118 local production browser checks passed**: general 22, admin 22, identity
+  42, messaging 32. Synthetic loopback fixtures only, no actual Supabase/JWT claim.
+- Initial image pull/setup was interrupted by local Docker disk pressure; removed
+  only regenerable task caches and reran sequentially to completion. A new test
+  environment typing error (missing NODE_ENV) was corrected; final build/typecheck
+  passed. No unresolved local failure. Earlier interrupted logs are not final evidence.
+- Both SQL/private-inspection scripts were syntax/execution checked only against
+  synthetic local catalogs; no live bodies or private values were obtained.
+- Final commit and actual GitHub Actions matrix results are recorded in PR #8.
