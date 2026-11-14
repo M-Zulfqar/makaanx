@@ -1,6 +1,17 @@
 # Administrator visibility — evidence-driven diagnosis
 
-14 November 2026. **Actual staging root cause remains unverified.** Owner reports
+## Latest confirmed evidence — 15 November 2026
+
+The owner now confirms **no makaanx_is_admin overload in any schema and no admin
+SELECT policy**, with only profiles_select_own, matching browser/server PGRST202
+and one visible row. This supersedes the prior owner observations below. Missing
+RPC explains PGRST202; own-only RLS explains the one-row result. See
+ADMIN_ACCESS_REPAIR.md for the exact minimum proposal, guards, rollback and local
+authorization evidence. No live repair has been executed or certified.
+
+## Historical evidence and general decision tree — 14 November 2026
+
+At that time the actual staging root cause was unverified. Owner reports
 `ficudncgevvxsxbjscrk`, six profiles (admin/landlord/four tenants), postgres-owned
 SECURITY DEFINER helper, authenticated EXECUTE/no anon EXECUTE, protected UPDATE
 columns and an admin SELECT policy, but an app session previously saw one profile.

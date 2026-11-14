@@ -437,3 +437,22 @@ No outstanding local failures. PostgreSQL completed repeated fresh-container run
 the final logging configuration suppresses statement/error payloads. SQL ran ONLY
 on task-created disposable local databases. GitHub Actions app and PostgreSQL job
 results are recorded in the new draft PR after the actual run.
+
+## Milestone 8C — Minimum admin visibility repair proposal
+
+15 November 2026. Owner-confirmed evidence now supersedes the earlier helper/policy
+observations: missing helper in every schema, only profiles_select_own, matching
+browser/server PGRST202/count-one. Prepared CREATE-only helper + authenticated
+admin SELECT policy, preserving own policy and all profile ACLs/write policies/
+records. No unrelated domain or application gate changes. See ADMIN_ACCESS_REPAIR.md
+for exact files, additional fail-closed prerequisites, matrix, risks and owner checklist.
+
+Actual local checks: **19 focused PostgreSQL repair/rollback checks passed** on
+PostgreSQL 16.16, six synthetic profiles (1 admin/1 landlord/4 tenants), ordinary
+non-owner/NOBYPASSRLS actor sessions; **35 existing PostgreSQL checks passed**;
+**210 unit tests passed across 26 files**; typecheck, zero-warning lint and production
+build passed. Unexpected grants/policies/schema/default EXECUTE refuse atomically;
+rollback refuses drift/dependencies and restores admin own-only without row/ACL
+changes. CI adds the focused suite to the existing database job; actual status is
+recorded on the draft PR. No staging/production SQL, accounts, privilege changes,
+merge or deployment occurred; no staging repair is claimed.
