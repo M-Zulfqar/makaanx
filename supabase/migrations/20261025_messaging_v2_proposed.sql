@@ -1,3 +1,6 @@
+-- HISTORICAL ALTERNATIVE. The Milestone 6 v1 recommendation requires metadata
+-- reconciliation; do not apply both blindly or assume the 2026-10-26 row counts
+-- describe current staging. See docs/MESSAGING_NOTIFICATIONS_MILESTONE.md.
 -- MakaanX two-party messaging migration
 -- DRAFT: apply on staging only after core security migration is verified.
 -- Preflight 2026-10-26: conversations=0, messages=0.

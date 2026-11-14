@@ -43,15 +43,7 @@ export default function LandlordSettingsPage() {
   const { language, setLanguage, isRtl } = useI18n();
   const { theme, setTheme } = useTheme();
   const [showPassword, setShowPassword] = useState(false);
-  const [notifications, setNotifications] = useState({
-    email: true,
-    push: true,
-    sms: false,
-    newInquiries: true,
-    paymentReceived: true,
-    tenantMessages: true,
-    marketing: false,
-  });
+
 
   const themes = [
     { id: "light", label: "Light", color: "bg-white border-2 border-border" },
@@ -201,7 +193,7 @@ export default function LandlordSettingsPage() {
         </TabsContent>
 
         {/* Notifications Tab */}
-        <TabsContent value="notifications" className="space-y-6">
+        <TabsContent value="notifications" className="space-y-6"><p className="rounded border p-4 text-sm">Delivery preferences are not connected. These controls are disabled; email, SMS and push settings are not saved.</p>
           <Card>
             <CardHeader>
               <CardTitle>Notification Preferences</CardTitle>
@@ -231,16 +223,13 @@ export default function LandlordSettingsPage() {
                       </div>
                     </div>
                     <Switch
-                      checked={notifications[item.key as keyof typeof notifications]}
-                      onCheckedChange={(checked) =>
-                        setNotifications({ ...notifications, [item.key]: checked })
-                      }
+                      disabled checked={false}
                     />
                   </div>
                 ))}
               </div>
 
-              <Button onClick={() => toast.success("Preferences saved")}>
+              <Button disabled>
                 Save Preferences
               </Button>
             </CardContent>

@@ -1,0 +1,11 @@
+import { beforeEach,expect,test,vi } from 'vitest';
+const mocks=vi.hoisted(()=>({send:vi.fn(),start:vi.fn(),read:vi.fn(),create:vi.fn(),refresh:vi.fn()}));
+vi.mock('@/lib/supabase/server',()=>({createClient:mocks.create}));
+vi.mock('next/cache',()=>({revalidatePath:mocks.refresh}));
+vi.mock('@/lib/messaging/service',()=>({sendMessage:mocks.send,startConversation:mocks.start,markConversationRead:mocks.read}));
+import { sendMessageAction,startConversationAction } from '@/lib/messaging/actions';
+import { ChatError } from '@/lib/messaging/schema';
+beforeEach(()=>{vi.clearAllMocks();mocks.create.mockResolvedValue({});});
+test('confirmed server writes invalidate both participant inboxes',async()=>{mocks.send.mockResolvedValue({id:'confirmed'});expect(await sendMessageAction({})).toEqual({ok:true,id:'confirmed'});expect(mocks.refresh).toHaveBeenCalledWith('/landlord/inbox');expect(mocks.refresh).toHaveBeenCalledWith('/dashboard/inbox/[id]','page');});
+test('authorization failure never claims success or invalidates',async()=>{mocks.start.mockRejectedValue(new ChatError('FORBIDDEN'));expect(await startConversationAction('bad')).toMatchObject({ok:false,code:'FORBIDDEN'});expect(mocks.refresh).not.toHaveBeenCalled();});
+test('unexpected SDK failures are redacted on action boundary',async()=>{mocks.send.mockRejectedValue(new Error('PRIVATE_BODY_TOKEN'));const r=await sendMessageAction({});expect(r.ok).toBe(false);expect(JSON.stringify(r)).not.toContain('PRIVATE_BODY_TOKEN');expect(mocks.refresh).not.toHaveBeenCalled();});

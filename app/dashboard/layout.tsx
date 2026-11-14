@@ -17,11 +17,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+
 import {
   Building2,
   LayoutDashboard,
@@ -30,7 +26,6 @@ import {
   CreditCard,
   Users,
   Settings,
-  Bell,
   Search,
   Menu,
   X,
@@ -42,13 +37,10 @@ import {
   LogOut,
   User,
   Sparkles,
-  Check,
-  AlertCircle,
   Calendar,
-  DollarSign,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
+import { NotificationsLink } from "@/components/notifications/link";
 import { AIChatbot } from "@/components/ai-chatbot";
 
 const sidebarLinks = [
@@ -74,47 +66,9 @@ export default function DashboardLayout({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [aiChatOpen, setAiChatOpen] = useState(false);
-  const [notifications, setNotifications] = useState([
-    { id: 1, type: "payment", title: "Payment Received", message: "Your rent payment of PKR 45,000 was received", time: "2 mins ago", read: false },
-    { id: 2, type: "message", title: "New Message", message: "Landlord Ahmed Khan sent you a message", time: "1 hour ago", read: false },
-    { id: 3, type: "property", title: "Property Update", message: "New property matching your criteria in DHA Phase 5", time: "3 hours ago", read: false },
-    { id: 4, type: "alert", title: "Maintenance Scheduled", message: "Water supply maintenance on April 15", time: "1 day ago", read: true },
-    { id: 5, type: "payment", title: "Payment Reminder", message: "Your rent is due in 5 days", time: "2 days ago", read: true },
-  ]);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
-
-  const markAsRead = (id: number) => {
-    setNotifications(prev => 
-      prev.map(n => n.id === id ? { ...n, read: true } : n)
-    );
-    toast.success("Notification marked as read");
-  };
-
-  const markAllAsRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    toast.success("All notifications marked as read");
-  };
-
-  const getNotificationIcon = (type: string) => {
-    switch (type) {
-      case "payment": return DollarSign;
-      case "message": return MessageSquare;
-      case "property": return Home;
-      case "alert": return AlertCircle;
-      default: return Bell;
-    }
-  };
-
-  const themeIcons: Record<string, typeof Sun> = {
-    light: Sun,
-    dark: Moon,
-    realestate: Home,
-    midnight: Stars,
-  };
-
+  const themeIcons: Record<string, typeof Sun> = { light: Sun, dark: Moon, realestate: Home, midnight: Stars };
   const ThemeIcon = themeIcons[theme] || Sun;
-
   return (
     <div className={cn("min-h-screen bg-background flex", isRtl && "flex-row-reverse")}>
       {/* Desktop Sidebar */}
@@ -371,89 +325,7 @@ export default function DashboardLayout({
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Notifications */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative">
-                  <Bell className="h-5 w-5" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
-                      {unreadCount}
-                    </span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align={isRtl ? "start" : "end"} className="w-80 p-0">
-                <div className="flex items-center justify-between p-4 border-b border-border">
-                  <h3 className="font-semibold">Notifications</h3>
-                  {unreadCount > 0 && (
-                    <Button variant="ghost" size="sm" onClick={markAllAsRead} className="text-xs h-auto py-1">
-                      Mark all read
-                    </Button>
-                  )}
-                </div>
-                <ScrollArea className="h-[300px]">
-                  {notifications.length === 0 ? (
-                    <div className="p-4 text-center text-muted-foreground">
-                      No notifications
-                    </div>
-                  ) : (
-                    <div className="divide-y divide-border">
-                      {notifications.map((notification) => {
-                        const Icon = getNotificationIcon(notification.type);
-                        return (
-                          <button
-                            key={notification.id}
-                            onClick={() => markAsRead(notification.id)}
-                            className={cn(
-                              "w-full flex items-start gap-3 p-4 text-left hover:bg-muted/50 transition-colors",
-                              !notification.read && "bg-primary/5"
-                            )}
-                          >
-                            <div className={cn(
-                              "w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0",
-                              notification.type === "payment" && "bg-green-100 text-green-600",
-                              notification.type === "message" && "bg-blue-100 text-blue-600",
-                              notification.type === "property" && "bg-purple-100 text-purple-600",
-                              notification.type === "alert" && "bg-amber-100 text-amber-600"
-                            )}>
-                              <Icon className="h-4 w-4" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <p className={cn(
-                                  "text-sm truncate",
-                                  !notification.read && "font-medium"
-                                )}>
-                                  {notification.title}
-                                </p>
-                                {!notification.read && (
-                                  <span className="w-2 h-2 bg-primary rounded-full flex-shrink-0" />
-                                )}
-                              </div>
-                              <p className="text-xs text-muted-foreground line-clamp-2">
-                                {notification.message}
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {notification.time}
-                              </p>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </ScrollArea>
-                <div className="p-2 border-t border-border">
-                  <Button variant="ghost" className="w-full text-sm" asChild>
-                    <Link href="/dashboard/settings">
-                      <Settings className="h-4 w-4 mr-2" />
-                      Notification Settings
-                    </Link>
-                  </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
+            <NotificationsLink href="/dashboard/notifications"/>
 
             {/* User Menu */}
             <DropdownMenu>

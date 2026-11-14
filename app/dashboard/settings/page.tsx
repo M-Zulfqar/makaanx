@@ -40,14 +40,7 @@ export default function SettingsPage() {
   const { language, setLanguage, isRtl } = useI18n();
   const { theme, setTheme } = useTheme();
   const [showPassword, setShowPassword] = useState(false);
-  const [notifications, setNotifications] = useState({
-    email: true,
-    push: true,
-    sms: false,
-    marketing: false,
-    propertyUpdates: true,
-    paymentReminders: true,
-  });
+
 
   const themes = [
     { id: "light", label: "Light", color: "bg-white border-2 border-border" },
@@ -156,7 +149,7 @@ export default function SettingsPage() {
         </TabsContent>
 
         {/* Notifications Tab */}
-        <TabsContent value="notifications" className="space-y-6">
+        <TabsContent value="notifications" className="space-y-6"><p className="rounded border p-4 text-sm">Delivery preferences are not connected. These controls are disabled; email, SMS and push settings are not saved.</p>
           <Card>
             <CardHeader>
               <CardTitle>Notification Preferences</CardTitle>
@@ -186,16 +179,13 @@ export default function SettingsPage() {
                       </div>
                     </div>
                     <Switch
-                      checked={notifications[item.key as keyof typeof notifications]}
-                      onCheckedChange={(checked) =>
-                        setNotifications({ ...notifications, [item.key]: checked })
-                      }
+                      disabled checked={false}
                     />
                   </div>
                 ))}
               </div>
 
-              <Button onClick={() => toast.success("Notification preferences saved")}>
+              <Button disabled>
                 Save Preferences
               </Button>
             </CardContent>

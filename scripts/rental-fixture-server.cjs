@@ -2,6 +2,7 @@
 // MAKAANX_FIXTURE_AUTH=1 enables SYNTHETIC sessions for admin browser tests;
 // unsigned fixture JWT subjects are trusted here ONLY, never by application code.
 const http = require('node:http');
+const messagingFixtures=process.env.MAKAANX_FIXTURE_MESSAGING==='1'?require('./messaging-fixtures.cjs'):null;
 const port = Number(process.env.MAKAANX_FIXTURE_PORT || 54329);
 const authFixtures = process.env.MAKAANX_FIXTURE_AUTH === '1';
 const adminId = '50000000-0000-4000-8000-000000000001';
@@ -49,7 +50,7 @@ function matches(row, key, value) {
   if (operator === 'not' && operand === 'is.null') return row[key] != null;
   return false;
 }
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
   res.setHeader('Content-Type', 'application/json'); res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'authorization,apikey,x-client-info,x-supabase-api-version,accept-profile,content-profile,content-type,prefer,range');
   if (req.method === 'OPTIONS') { res.end(); return; }
@@ -57,6 +58,7 @@ const server = http.createServer((req, res) => {
   if (authFixtures && url.pathname === '/rest/v1/rpc/makaanx_is_admin' && req.method === 'POST') {
     res.end(JSON.stringify(Boolean(user?.role === 'admin'))); return; // Read-only scalar RPC fixture.
   }
+  if(messagingFixtures&&await messagingFixtures(req,res,url,user))return;
   if (!['GET', 'HEAD'].includes(req.method)) { res.writeHead(405); res.end(JSON.stringify({ code: 'READ_ONLY_FIXTURE' })); return; }
   if (url.pathname === '/health') { res.end(JSON.stringify({ fixture: true, syntheticAuth: authFixtures })); return; }
   if (url.pathname === '/auth/v1/user') {

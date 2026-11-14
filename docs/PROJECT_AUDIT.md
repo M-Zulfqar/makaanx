@@ -269,3 +269,22 @@ No live identity upload/review/document viewer is claimed complete. Real RLS,
 storage, atomicity, concurrency and retention gates remain unverified; uploads
 source-gated, review EXECUTE ungranted. See `IDENTITY_VERIFICATION_MILESTONE.md`
 and the Milestone 5 actual results in `IMPLEMENTATION_PLAN.md`.
+
+## Milestone 6 — Messaging and notification source audit
+
+14 November 2026: tenant/landlord inbox code duplicated oldest-100 history and raw
+SDK errors; legacy `/dashboard/messages` simulated automatic replies and receipts;
+tenant header fabricated five notifications and local read successes. Historical
+messaging-v2 direct INSERT/zero-history/cascade assumptions did not supply rate,
+nonce, read-cursor, last-activity or event delivery guarantees. No actual deployed
+messaging or notification schema is presumed from those proposals.
+
+Replaced with shared scoped bounded inbox/latest-cursor thread, server actions,
+strict input/participant checks, confirmation-only nonce-safe send, optional exact
+unread state and recipient notification pages. Writes/read-state require proposed
+v1 compatibility; Realtime remains source-disabled. Fake notifications/preference
+save behavior removed. One history-preserving proposal and minimum metadata package,
+ordered integration runbook and default-no-network disposable harness prepared.
+Actual local results are in the plan; real RLS/races/atomicity/storage/publication
+remain untested. Existing identity gates, diagnostics/helper and auth cookies/proxy
+are unchanged. No staging/production mutation, merge or deployment occurred.
