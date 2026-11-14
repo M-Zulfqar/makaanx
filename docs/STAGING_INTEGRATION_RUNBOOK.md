@@ -131,3 +131,14 @@ fake sessions and synthetic in-memory event state only. No real PostgreSQL,
 Supabase storage/publication, six-profile admin access or multi-account staging
 behavior is certified. Preserve all existing draft PRs and review/approve concrete
 baseline-specific database changes before any merge or deployment.
+
+## Milestone 7 update — isolated PostgreSQL evidence
+
+See BACKEND_INTEGRATION_AUDIT.md, DATABASE_MIGRATION_DEPENDENCIES.md,
+LOCAL_DATABASE_TESTING.md, ADMIN_VISIBILITY_DIAGNOSIS.md and
+RELEASE_CONSOLIDATION_PLAN.md. Real local PostgreSQL RLS/grant/transaction/lock
+tests now execute on a synthetic Docker baseline. They do not change this
+runbook's **no live staging verification** statement or authorize connected
+mutations. Do not replace Supabase Auth/Storage/Realtime acceptance with the local
+metadata adapters. The new conditional rental authorization proposal refuses
+existing unknown policies; obtain the actual minimal replacement diff first.
