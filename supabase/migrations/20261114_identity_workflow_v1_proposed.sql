@@ -87,7 +87,11 @@ DECLARE f record;
 BEGIN
   FOR f IN SELECT p.oid::regprocedure AS signature FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
     WHERE n.nspname='public' AND p.proname IN ('makaanx_review_identity','makaanx_submit_cnic')
-  LOOP EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated',f.signature); END LOOP;
+  LOOP
+    EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC, anon, authenticated',f.signature);
+    IF has_function_privilege('authenticated',f.signature::oid,'EXECUTE') OR has_function_privilege('anon',f.signature::oid,'EXECUTE')
+    THEN RAISE EXCEPTION 'Inherited legacy identity EXECUTE requires reconciliation'; END IF;
+  END LOOP;
 END $$;
 
 CREATE FUNCTION public.makaanx_begin_identity_v1(file_mime text,file_bytes bigint,file_sha256 text) RETURNS jsonb

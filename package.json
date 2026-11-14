@@ -13,7 +13,9 @@
     "test:browser:admin": "node scripts/admin-browser-smoke.cjs",
     "test:browser:identity": "node scripts/identity-browser-smoke.cjs",
     "test:browser:messaging": "node scripts/messaging-browser-smoke.cjs",
-    "test:integration": "node scripts/integration/messaging-acceptance.cjs"
+    "test:integration": "node scripts/integration/messaging-acceptance.cjs",
+    "test:db:local": "node scripts/local-db/run.cjs",
+    "test:db:manage": "node scripts/local-db/manage.cjs"
   },
   "dependencies": {
     "@hookform/resolvers": "7.0.6",

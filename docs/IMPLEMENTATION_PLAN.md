@@ -392,3 +392,48 @@ No outstanding local test failures. Initial missing-import/theme helper and test
 environment typing errors were corrected and all checks rerun. Local synthetic
 state is not PostgreSQL authorization or transactional evidence. GitHub Actions
 status is recorded in the draft PR after the actual run.
+
+## Milestone 7 — Backend integration and release consolidation
+
+14 November 2026 (Asia/Karachi). Branch `feature/backend-integration-readiness`
+starts at `2dad1ec` and targets `feature/messaging-notifications` as a new stacked
+draft. PRs #2–#6 remain unchanged, draft and unmerged.
+
+Implemented an isolated real PostgreSQL 16.16 Docker harness with fixed local
+socket/DB/image/network guards, deterministic fictional baseline and independent
+non-owner/non-bypass SQL actors. It tests actual RLS/grants, constraints, triggers,
+SECURITY DEFINER functions, observed-lock races and injected atomic failures.
+Owner setup and temporary review-body test grants are explicitly separated; no
+live grant or application feature gate is enabled. No PostgreSQL adapter is
+claimed to emulate Supabase JWT, HTTP Storage bytes or Realtime delivery.
+
+Added a focused conditional rental RLS/transition proposal (not live executable
+without actual policy reconciliation), equivalent uniqueness reuse and inherited
+legacy identity EXECUTE abort protection. Source/applied hashes identify the exact
+locally tested files; only synthetic policy pins are patched in memory. Added
+independent database CI job and bounded report artifact. Prepared backend audit,
+dependency order, local setup guide, admin evidence template and release/owner
+action matrix. Original phase1 live DDL and staging results remain unavailable.
+
+| Check | Milestone 7 actual result |
+| --- | --- |
+| Unit/regression | **209 tests passed across 26 files**; prior 199 retained plus 10 local-isolation/input guard checks. |
+| Real local PostgreSQL | **35 real PostgreSQL checks passed** on pinned PostgreSQL 16.16; **8 observed lock-overlap races**, all passed. Actual RLS/grants/constraints/triggers/functions and atomic fault rollback; synthetic baseline, no Supabase HTTP/JWT/Storage/Realtime claim. |
+| TypeScript | **Passed**, final `npm run typecheck`. |
+| Zero-warning ESLint | **Passed**, 0 errors and 0 warnings. |
+| Production build | **Passed**, Next.js 16.4.6 with dummy loopback fixture public configuration. |
+| All four browser suites | **117 checks passed**: 22 rental + 21 admin + 42 identity + 32 messaging, final production build and isolated HTTP fixtures. |
+| Production dependency audit | `npm audit --omit=dev`: **0 findings**. Full audit retains **7 moderate development-only** baseline, 0 high/critical. No dependency/lockfile changes. |
+| Diff/security/stack review | `git diff --check` passed; full new source/proposal/workflow/privacy review completed. Existing PR heads/targets/draft states verified; no app/auth/identity/Realtime gate changed. Conditional live order and owner evidence/approval checklist documented. |
+
+The initial larger Docker image exhausted local VFS disk on a second container;
+only task-owned disposable resources were removed, then pinned Alpine PG16
+completed the suite. No staging/production SQL, real accounts/records/documents,
+service credentials, RLS bypass, branch protection changes, merge or deployment.
+Real staging admin root cause and Supabase-specific release gates remain blocked
+on the minimal evidence and explicit approvals in RELEASE_CONSOLIDATION_PLAN.md.
+
+No outstanding local failures. PostgreSQL completed repeated fresh-container runs;
+the final logging configuration suppresses statement/error payloads. SQL ran ONLY
+on task-created disposable local databases. GitHub Actions app and PostgreSQL job
+results are recorded in the new draft PR after the actual run.

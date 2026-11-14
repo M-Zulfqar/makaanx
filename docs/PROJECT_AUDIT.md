@@ -288,3 +288,26 @@ ordered integration runbook and default-no-network disposable harness prepared.
 Actual local results are in the plan; real RLS/races/atomicity/storage/publication
 remain untested. Existing identity gates, diagnostics/helper and auth cookies/proxy
 are unchanged. No staging/production mutation, merge or deployment occurred.
+
+## Milestone 7 — Real local PostgreSQL integration evidence
+
+14 November 2026. A pinned network-none PostgreSQL 16.16 container now executes the
+selected proposals against a deterministic synthetic baseline. Ordinary DB roles
+exercise RLS/column grants, protected roles, own rental state, uniqueness and FK
+races, pending transitions, messaging nonce/quota/event rollback, identity version/
+audit integrity and report creation audit. Owner setup/fault injection/test-only
+review grants are separated; review EXECUTE is revoked again. This is real local
+SQL evidence, not actual Supabase JWT/Storage/Realtime or staging verification.
+
+Confirmed source fixes: equivalent full unique indexes are reused; inherited
+legacy identity EXECUTE aborts the proposal transaction. A focused conditional
+rental authorization/transition proposal fills a source gap without claiming an
+unknown live policy replacement. Added a guarded local harness, independent CI
+job, backend/dependency audit, owner admin diagnostic template and reviewed stack
+consolidation plan. A restrictive local policy can reproduce helper=true/count=1;
+staging root cause is still unverified. No app gates, installed privileges, real
+records, branch protection, merges or deployment were changed.
+
+See BACKEND_INTEGRATION_AUDIT.md, DATABASE_MIGRATION_DEPENDENCIES.md,
+LOCAL_DATABASE_TESTING.md, ADMIN_VISIBILITY_DIAGNOSIS.md and
+RELEASE_CONSOLIDATION_PLAN.md; final counts and checks are in IMPLEMENTATION_PLAN.md.

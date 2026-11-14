@@ -27,3 +27,20 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: dummy-build-only
         run: npm run build
+  postgres-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Isolated PostgreSQL authorization and concurrency tests
+        run: node scripts/local-db/run.cjs
+      - name: Upload bounded local database results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: local-postgresql-results
+          path: work/local-db-results.json
+          if-no-files-found: ignore
