@@ -1,3 +1,6 @@
+-- HISTORICAL ALTERNATIVE: superseded as a recommendation by
+-- 20261114_identity_workflow_v1_proposed.sql and docs/IDENTITY_VERIFICATION_MILESTONE.md.
+-- Do not apply together. No claim is made that either proposal is deployed.
 -- PROPOSED ONLY: DO NOT RUN without staging review and backup.
 -- Administrator read access to profiles and private CNIC objects.
 -- This migration intentionally DOES NOT approve/reject identities.

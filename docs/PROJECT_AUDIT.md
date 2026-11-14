@@ -248,3 +248,24 @@ staging guide are prepared. Report tables are unconfirmed, so the page is honest
 about unavailable configuration. The fresh-table/RLS/creation-audit proposal and
 locked empty-only rollback have not been executed. Detailed code/mock/real-staging
 status is in `ADMIN_MANAGEMENT_MILESTONE.md`.
+
+## Milestone 5 — Identity security readiness (14 November 2026)
+
+Evidence: separate signup and verification upload writers could strand random-path
+objects on submission RPC failure. Legacy submit proposal permitted replacing a
+pending path and did not restrict eligible roles. Review proposals conflicted on
+two-/three-argument overloads, audit tables, reasons and blanket admin object SELECT.
+Neither repository proposal is assumed deployed. The dormant review component
+used the three-argument contract and raw SDK errors.
+
+Registration now collects no document or invented verification result. Own status
+and one-file validation, tracked proposed coordinator/recovery and gated submission
+UI are implemented. Admin queue is authorized, filtered, exact-count paginated and
+path-free; legacy review controls removed. One v1 SQL architecture, metadata
+preflight, nondestructive access rollback and post-approval acceptance matrix are
+prepared only. No helper/profile policy, auth proxy/cookies or diagnostics changed.
+
+No live identity upload/review/document viewer is claimed complete. Real RLS,
+storage, atomicity, concurrency and retention gates remain unverified; uploads
+source-gated, review EXECUTE ungranted. See `IDENTITY_VERIFICATION_MILESTONE.md`
+and the Milestone 5 actual results in `IMPLEMENTATION_PLAN.md`.

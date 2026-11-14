@@ -11,6 +11,14 @@ const profiles = [
   { id: adminId, role: 'admin' }, { id: landlordId, role: 'landlord' },
   ...Array.from({ length: 4 }, (_, i) => ({ id: `10000000-0000-4000-8000-${String(i + 1).padStart(12, '0')}`, role: 'tenant' })),
 ].map(row => ({ ...row, full_name: `Fixture ${row.role}`, verification_status: 'pending', cnic_path: 'PRIVATE_FIXTURE_DOCUMENT_NOT_FOR_OUTPUT' }));
+// Additional fictional subjects for identity browser pagination/status checks.
+// Only this special synthetic reviewer sees these rows; normal admin fixtures
+// retain the one-visible-profile symptom used by previous milestone checks.
+const reviewerId = '80000000-0000-4000-8000-000000000001';
+const identityProfiles = [
+  { id: reviewerId, role: 'admin', full_name: 'Fictional reviewer', verification_status: 'pending', cnic_path: null },
+  ...Array.from({ length: 17 }, (_, i) => ({ id: `70000000-0000-4000-8000-${String(i + 1).padStart(12, '0')}`, role: i % 2 ? 'landlord' : 'tenant', full_name: `Fictional identity ${String(i+1).padStart(2,'0')}`, verification_status: i === 16 ? 'rejected' : i === 15 ? 'verified' : 'pending', cnic_path: i === 14 ? null : 'PRIVATE_FIXTURE_DOCUMENT_NOT_FOR_OUTPUT' })),
+];
 const rows = Array.from({ length: 25 }, (_, offset) => {
   const i = offset + 1;
   return { id: `30000000-0000-4000-8000-${String(i).padStart(12, '0')}`, landlord_id: landlordId,
@@ -27,7 +35,7 @@ function caller(req) {
   try {
     const token = String(req.headers.authorization || '').split(' ')[1];
     const subject = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString()).sub;
-    return profiles.find(row => row.id === subject) || null;
+    return [...profiles, ...identityProfiles].find(row => row.id === subject) || null;
   } catch { return null; }
 }
 function matches(row, key, value) {
@@ -43,7 +51,7 @@ function matches(row, key, value) {
 }
 const server = http.createServer((req, res) => {
   res.setHeader('Content-Type', 'application/json'); res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'authorization,apikey,x-client-info,content-type,prefer,range');
+  res.setHeader('Access-Control-Allow-Headers', 'authorization,apikey,x-client-info,x-supabase-api-version,accept-profile,content-profile,content-type,prefer,range');
   if (req.method === 'OPTIONS') { res.end(); return; }
   const url = new URL(req.url, `http://127.0.0.1:${port}`), user = caller(req);
   if (authFixtures && url.pathname === '/rest/v1/rpc/makaanx_is_admin' && req.method === 'POST') {
@@ -59,7 +67,7 @@ const server = http.createServer((req, res) => {
   let permitted;
   if (table === 'properties') permitted = rows;
   // Model the known visibility symptom without claiming it reproduces real RLS.
-  else if (authFixtures && table === 'profiles') permitted = user ? profiles.filter(row => row.id === user.id) : [];
+  else if (authFixtures && table === 'profiles') permitted = !user ? [] : user.id === reviewerId ? identityProfiles : [...profiles, ...identityProfiles].filter(row => row.id === user.id);
   else if (authFixtures && table === 'applications') permitted = !user ? [] : user.role === 'tenant' ? applications.filter(row => row.tenant_id === user.id) : applications;
   else { res.writeHead(404); res.end(JSON.stringify({ code: 'FIXTURE_ROUTE_UNAVAILABLE' })); return; }
   if ((url.searchParams.get('title') || '').replace(/\\/g, '').includes('force_error')) { res.writeHead(500); res.end(JSON.stringify({ code: 'XX000', message: 'PRIVATE_DATABASE_DETAIL' })); return; }

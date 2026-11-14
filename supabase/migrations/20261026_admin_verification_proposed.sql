@@ -1,3 +1,6 @@
+-- HISTORICAL ALTERNATIVE: superseded as a recommendation by
+-- 20261114_identity_workflow_v1_proposed.sql and docs/IDENTITY_VERIFICATION_MILESTONE.md.
+-- Do not apply together. No claim is made that either proposal is deployed.
 -- MakaanX administrator verification migration -- DRAFT, NOT APPLIED.
 -- REQUIRED FIRST: apply/test the profile grant hardening in
 -- 20261025_milestone_1_2_auth_foundation.sql on a staging clone.

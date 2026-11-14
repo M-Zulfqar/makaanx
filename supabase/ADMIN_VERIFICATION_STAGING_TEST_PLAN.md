@@ -1,5 +1,7 @@
 # Admin verification staging test plan
 
+> Historical alternative only. The recommended v1 contract and current gates are in [../docs/IDENTITY_VERIFICATION_MILESTONE.md](../docs/IDENTITY_VERIFICATION_MILESTONE.md) and the consolidated staging guide. Do not apply the old proposals or grant broad document access from this older plan. No proposal is presumed deployed.
+
 Status: guidance only; no database changes.
 
 1. Confirm the Supabase project reference matches the staging URL in local configuration. The dashboard's `main (PRODUCTION)` label may describe the database branch, not the intended environment.
