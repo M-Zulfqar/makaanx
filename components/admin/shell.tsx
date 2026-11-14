@@ -1,4 +1,5 @@
 "use client"
+import { NotificationsLink } from "@/components/notifications/link";
 
 import { useLogout } from "@/hooks/use-logout";
 import { useState } from "react"
@@ -13,7 +14,6 @@ import {
   Flag,
   Shield,
   Settings,
-  Bell,
   LogOut,
   Menu,
   X,
@@ -33,11 +33,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
 import { Badge } from "@/components/ui/badge"
 import { useTheme } from "@/lib/theme/context"
 import { cn } from "@/lib/utils"
@@ -193,17 +188,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
               {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>
 
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Notifications">
-                  <Bell className="h-5 w-5" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="end" className="w-80">
-                <h3 className="font-semibold">Notifications</h3>
-                <p className="mt-2 text-sm text-muted-foreground">Notification delivery is not connected.</p>
-              </PopoverContent>
-            </Popover>
+            <NotificationsLink href="/admin/notifications"/>
 
             {/* Profile */}
             <DropdownMenu>

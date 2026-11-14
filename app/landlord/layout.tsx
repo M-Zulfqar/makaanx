@@ -1,4 +1,5 @@
 "use client"
+import { NotificationsLink } from "@/components/notifications/link";
 
 import { useLogout } from "@/hooks/use-logout";
 import { useState } from "react"
@@ -13,7 +14,6 @@ import {
   BarChart3,
   MessageSquare,
   Settings,
-  Bell,
   LogOut,
   Menu,
   X,
@@ -34,11 +34,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
 import { Badge } from "@/components/ui/badge"
 import { useI18n } from "@/lib/i18n/context"
 import { useTheme } from "@/lib/theme/context"
@@ -202,7 +197,7 @@ export default function LandlordLayout({ children }: { children: React.ReactNode
               {language === "en" ? "اردو" : "EN"}
             </Button>
 
-            <Popover><PopoverTrigger asChild><Button variant="ghost" size="icon" aria-label="Notifications"><Bell className="h-5 w-5"/></Button></PopoverTrigger><PopoverContent align="end"><p className="text-sm">Notification delivery is not connected.</p></PopoverContent></Popover>
+            <NotificationsLink href="/landlord/notifications"/>
 
             {/* Profile */}
             <DropdownMenu>

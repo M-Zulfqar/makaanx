@@ -1,0 +1,4 @@
+import { expect,test } from 'vitest';
+import { spawnSync } from 'node:child_process';
+test('integration defaults to plan-only without network or fixture secrets',()=>{const r=spawnSync(process.execPath,['scripts/integration/messaging-acceptance.cjs'],{encoding:'utf8',env:{NODE_ENV:"test",PATH:process.env.PATH}});expect(r.status).toBe(0);expect(r.stdout).toContain('0 network requests; 0 connected mutations');});
+test('execute flag alone fails closed without disclosing configuration',()=>{const r=spawnSync(process.execPath,['scripts/integration/messaging-acceptance.cjs','--execute-approved'],{encoding:'utf8',env:{NODE_ENV:"test",PATH:process.env.PATH,MAKAANX_TEST_TENANT_TOKEN:'PRIVATE'}});expect(r.status).toBe(1);expect(r.stderr).not.toContain('PRIVATE');expect(r.stderr).toContain('Integration blocked or failed');});

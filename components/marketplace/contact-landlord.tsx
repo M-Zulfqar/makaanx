@@ -1,33 +1,9 @@
-"use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/browser";
-
-export function ContactLandlord({propertyId}:{propertyId:string}) {
-  const router=useRouter();
-  const [busy,setBusy]=useState(false);
-  const [error,setError]=useState("");
-  async function start() {
-    if(busy)return;
-    setBusy(true);setError("");
-    try {
-      const supabase=createClient();
-      const {data:{user}}=await supabase.auth.getUser();
-      if(!user){router.push("/auth/login");return;}
-      const {data:chatId,error:rpcError}=await supabase.rpc("makaanx_start_conversation",{
-        target_property:propertyId,
-      });
-      if(rpcError)throw rpcError;
-      if(typeof chatId!=="string")throw new Error("Unable to open conversation.");
-      router.push(`/dashboard/inbox/${chatId}`);
-    }catch(e){setError(e instanceof Error?e.message:"Unable to contact landlord.");}
-    finally{setBusy(false);}
-  }
-  return <div className="space-y-2">
-    <button type="button" disabled={busy} onClick={start}
-      className="rounded border px-5 py-3 disabled:opacity-50">
-      {busy?"Opening chat...":"Message landlord"}
-    </button>
-    {error&&<p role="alert" className="text-sm">{error}</p>}
-  </div>;
+'use client';
+import { useRef,useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { startConversationAction } from '@/lib/messaging/actions';
+export function ContactLandlord({propertyId}:{propertyId:string}){
+ const router=useRouter(),lock=useRef(false),[busy,setBusy]=useState(false),[error,setError]=useState('');
+ async function start(){if(lock.current)return;lock.current=true;setBusy(true);setError('');try{const result=await startConversationAction(propertyId);if(!result.ok){if(result.code==='AUTH')router.push('/auth/login');setError(result.message);return;}router.push(`/dashboard/inbox/${result.id}`);}catch{setError('Conversation could not be confirmed. Retry safely.');}finally{lock.current=false;setBusy(false);}}
+ return <div className="space-y-2"><button type="button" disabled={busy} onClick={start} className="rounded border px-5 py-3 disabled:opacity-50">{busy?'Opening chat...':'Message landlord'}</button>{error&&<p role="alert" className="text-sm">{error}</p>}</div>;
 }

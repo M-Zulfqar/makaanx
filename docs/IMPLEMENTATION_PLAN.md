@@ -344,3 +344,51 @@ localhost fixture CORS/selector issues were corrected and rerun successfully; no
 application authorization rule was weakened. PostgreSQL, storage enforcement,
 concurrency and atomic-audit acceptance cases are explicitly **NOT RUN**. GitHub
 Actions status is recorded in the draft PR, not inferred from local results.
+
+## Milestone 6 — Messaging, notifications and integration readiness
+
+14 November 2026 (Asia/Karachi). Branch `feature/messaging-notifications` starts
+at PR #5 `74481b6` and targets `feature/secure-identity-verification`, separate
+stacked draft. Existing PRs #2–#5 remain draft/unmerged and unmodified.
+
+Shared role/participant-authorized inbox and cursor-paged latest history replace
+duplicated pages and simulated chat. Server actions validate allowlisted message
+input, derive identity from cookies and use nonce-safe proposed RPCs. Actual writes
+require the exact compatible backend marker, participant validation and confirmed
+RPC result. Missing contracts do not pretend to send. Exact per-conversation unread
+state and recipient notification reads/mark actions are compatibility-gated.
+Realtime lifecycle adapter is implemented/tested but source-disabled until approved
+publication/RLS checks. Invented tenant notifications and preferences save claims
+are removed; real in-app pages are linked for all roles, external delivery disabled.
+
+One reviewed messaging/notification upgrade proposal preserves original history,
+requires exact baseline/policy/participant/FK reconciliation, reuses equivalent
+unique keys, revokes direct writes/legacy start and derives sender/recipient in
+atomic rate-limited send + idempotency/event transaction. Preflight and non-
+destructive off-switch prepared only. Disposable REST harness defaults to zero
+network/writes and has explicit target/approval/fixture guards. Its mutating mode
+was NOT RUN. See MESSAGING_NOTIFICATIONS_MILESTONE.md and the new consolidated
+STAGING_INTEGRATION_RUNBOOK.md for completion matrix and cross-milestone gates.
+
+| Check | Milestone 6 actual result |
+| --- | --- |
+| Regression suite | **199 tests passed across 25 files**, including 41 additional messaging/notification/action/UI/lifecycle/gate checks; prior 158 retained. |
+| TypeScript | **Passed**, final route-generated `npm run typecheck`; no suppressions. |
+| Zero-warning ESLint | **Passed**, 0 errors and 0 warnings. |
+| Production build | **Passed**, Next.js 16.4.6 with dummy loopback fixture configuration. |
+| Existing rental/admin/identity browser smoke | **22 rental + 21 administration + 42 identity = 85 checks passed** against final production build. |
+| Messaging browser smoke | **32 checks passed**, tenant/landlord shared inbox, cursor history, uncertain retry, read acknowledgments, notifications, unrelated/missing-contract/error/mobile/privacy boundaries; synthetic localhost fixtures only. |
+| Integration harness default | Plan-only executed; 0 network requests, 0 connected mutations. Execute mode NOT RUN. |
+| Dependency audits | Production **0 findings**; full **7 moderate development-only baseline**, 0 high/critical. No dependency/lockfile changes. |
+| Diff/security review | `git diff --check` passed; complete changed-source/SQL/privacy/dependency review completed. No private body/token logging, service credentials or public document APIs added. Existing auth/identity/diagnostics/admin profile policies unchanged. SQL and real-DB acceptance cases NOT RUN. |
+
+Real integration remains none. Existing admin one-of-six issue, rental uniqueness/
+transitions/FK history, identity broker/cleanup/authorization, messaging direct-API
+isolation/concurrency/quota/atomicity, notification recipient/event integrity and
+Realtime publication are explicit release gates. No SQL, connected mutations,
+real users/messages/notifications, CNIC access, credentials, merges or deployments.
+
+No outstanding local test failures. Initial missing-import/theme helper and test
+environment typing errors were corrected and all checks rerun. Local synthetic
+state is not PostgreSQL authorization or transactional evidence. GitHub Actions
+status is recorded in the draft PR after the actual run.
