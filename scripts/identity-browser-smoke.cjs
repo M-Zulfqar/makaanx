@@ -11,7 +11,7 @@ function cookie(id){const exp=Math.floor(Date.now()/1000)+3600,enc=v=>Buffer.fro
  try{
   for(const role of ['anonymous','tenant','landlord','admin','rejected','verified','reviewer']){
    const context=await browser.newContext({viewport:{width:1440,height:1000}});if(ids[role])await context.addCookies([{name:'sb-127-auth-token',value:cookie(ids[role]),domain:base.hostname,path:'/',sameSite:'Lax'}]);
-   const page=await context.newPage(),errors=[],writes=[];page.setDefaultTimeout(15000);page.on('pageerror',()=>errors.push('RUNTIME_ERROR'));page.on('request',r=>{if(!['GET','HEAD','OPTIONS'].includes(r.method())&&!r.url().includes('/rpc/makaanx_is_admin'))writes.push('WRITE');});
+   const page=await context.newPage(),errors=[],writes=[];page.setDefaultTimeout(15000);page.on('pageerror',()=>errors.push('RUNTIME_ERROR'));page.on('request',r=>{if(!['GET','HEAD','OPTIONS'].includes(r.method())&&!['makaanx_is_admin','makaanx_admin_profiles','makaanx_admin_profile_counts'].some(name=>r.url().endsWith('/rpc/'+name)))writes.push('WRITE');});
    await page.goto(new URL('/auth/verify-identity',base).href);
    const status=page.getByRole('status');await status.filter({hasText:role==='anonymous'?'Sign in again':role==='admin'||role==='reviewer'?'Only tenant':role==='rejected'?'rejected':role==='verified'?'marked verified':'Pending status alone'}).waitFor();pass(`${role} own status and role restriction`);
    await page.getByText(/No document can be uploaded from this build/).waitFor();assert(!(await page.content()).includes('PRIVATE_FIXTURE_DOCUMENT'));pass(`${role} gate and private path absent`);
@@ -30,7 +30,7 @@ function cookie(id){const exp=Math.floor(Date.now()/1000)+3600,enc=v=>Buffer.fro
     await page.setViewportSize({width:375,height:812});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth));pass('mobile queue fits viewport');
    }else{
     await page.goto(new URL('/admin/verifications',base).href);
-    if(role==='admin'){await page.getByText('No accessible profiles match this page and filter.',{exact:true}).waitFor();pass('own-only admin coverage honest');}
+    if(role==='admin'){assert.equal(await page.getByRole('heading',{name:/^Fixture (tenant|landlord)$/}).count(),5);pass('admin queue shows five safe eligible projections');}
     else{assert.equal(new URL(page.url()).pathname,role==='anonymous'?'/auth/login':'/auth/unauthorized');pass(`${role} admin queue denied`);}
    }
    assert.equal(errors.length,0);assert.equal(writes.length,0);pass(`${role} no runtime errors or write requests`);await context.close();

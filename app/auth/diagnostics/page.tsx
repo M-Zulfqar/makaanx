@@ -33,7 +33,7 @@ export default function AccessDiagnostics() {
   }
   return <main className="mx-auto max-w-3xl space-y-5 p-6">
     <h1 className="text-2xl font-bold">Account access diagnostics</h1>
-    <p>Run while signed in to compare browser and server access. This reads session authorization and counts only; it does not change profiles or permissions.</p>
+    <p>Run while signed in to compare browser and server access. This reads session authorization and counts only; it does not change profiles or permissions. Count scope admin-projection means the restricted administrator directory total; own-rls means direct own-profile table visibility. These measure different access paths. A missing administrator interface stays unavailable.</p>
     <button className="rounded border px-4 py-2" disabled={busy} onClick={run}>{busy ? "Checking…" : "Run read-only diagnostics"}</button>
     {reports && <div className="space-y-4" aria-live="polite">{(["browser", "server"] as const).map(source => <section key={source}>
       <h2 className="font-semibold capitalize">{source}</h2>

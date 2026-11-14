@@ -11,7 +11,7 @@ SELECT c.relkind,pg_get_userbyid(c.relowner) AS owner,c.relrowsecurity,c.relforc
  EXISTS(SELECT 1 FROM pg_inherits i WHERE i.inhrelid=c.oid OR i.inhparent=c.oid) AS has_inheritance
 FROM pg_class c WHERE c.oid='public.profiles'::regclass;
 SELECT a.attnum,a.attname AS column_name,format_type(a.atttypid,a.atttypmod) AS column_type,a.attnotnull,
- a.attgenerated,has_column_privilege('authenticated',a.attrelid,a.attnum,'SELECT') AS admin_would_read_all_rows,
+ a.attgenerated,has_column_privilege('authenticated',a.attrelid,a.attnum,'SELECT') AS own_profile_select_granted,
  a.attname IN('id','full_name','role','verification_status') AS admin_ui_returns_column
 FROM pg_attribute a WHERE a.attrelid='public.profiles'::regclass AND a.attnum>0 AND NOT a.attisdropped ORDER BY a.attnum;
 SELECT conname,pg_get_constraintdef(oid) AS primary_key FROM pg_constraint
@@ -57,13 +57,20 @@ SELECT n.nspname,p.oid::regprocedure AS signature,p.prokind,pg_get_userbyid(p.pr
  ARRAY(SELECT setting FROM unnest(p.proconfig) setting WHERE setting LIKE 'search_path=%' OR setting LIKE 'row_security=%') AS relevant_settings,
  has_function_privilege('authenticated',p.oid,'EXECUTE') AS authenticated_execute,
  has_function_privilege('anon',p.oid,'EXECUTE') AS anon_execute,
- md5(p.prosrc) AS source_hash,p.prosrc LIKE '%makaanx_is_admin%' AS mentions_helper,
+ md5(p.prosrc) AS source_hash,(p.prosrc LIKE '%makaanx_is_admin%' OR p.prosrc LIKE '%makaanx_admin_profiles%' OR p.prosrc LIKE '%makaanx_admin_profile_counts%') AS mentions_admin_interface,
  p.prosrc ILIKE '%profiles%' AS mentions_profiles,p.prosrc ~* '\mEXECUTE\M' AS possible_dynamic_sql
-FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE p.proname='makaanx_is_admin'
+FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace WHERE p.proname IN('makaanx_is_admin','makaanx_admin_profiles','makaanx_admin_profile_counts')
  OR (n.nspname='auth' AND p.proname='uid')
- OR (n.nspname NOT IN('pg_catalog','information_schema') AND p.prosrc LIKE '%makaanx_is_admin%')
+ OR (n.nspname NOT IN('pg_catalog','information_schema') AND (p.prosrc LIKE '%makaanx_is_admin%' OR p.prosrc LIKE '%makaanx_admin_profiles%' OR p.prosrc LIKE '%makaanx_admin_profile_counts%'))
  OR (n.nspname='public' AND p.prosecdef AND (has_function_privilege('authenticated',p.oid,'EXECUTE') OR has_function_privilege('anon',p.oid,'EXECUTE')))
 ORDER BY n.nspname,p.oid::regprocedure::text;
+SELECT n.nspname,p.oid::regprocedure AS signature,
+ CASE WHEN a.grantee=0 THEN 'PUBLIC' ELSE pg_get_userbyid(a.grantee) END AS grantee,
+ pg_get_userbyid(a.grantor) AS grantor,a.privilege_type,a.is_grantable
+FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
+ CROSS JOIN LATERAL aclexplode(coalesce(p.proacl,acldefault('f',p.proowner))) a
+WHERE p.proname IN('makaanx_is_admin','makaanx_admin_profiles','makaanx_admin_profile_counts')
+ORDER BY n.nspname,p.oid::regprocedure::text,grantee;
 SELECT c.oid::regclass AS relation,t.tgname,t.tgfoid::regprocedure AS routine,t.tgenabled,t.tgtype,t.tgnargs,
  pg_get_userbyid(f.proowner) AS function_owner,f.prosecdef,md5(f.prosrc) AS function_source_hash
 FROM pg_trigger t JOIN pg_class c ON c.oid=t.tgrelid JOIN pg_proc f ON f.oid=t.tgfoid WHERE NOT t.tgisinternal

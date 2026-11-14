@@ -1,7 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { requireAdministrator } from "@/lib/admin/access";
-import { literalSearch, type SearchParams } from "@/lib/rentals/schema";
+import { type SearchParams } from "@/lib/rentals/schema";
+import { readProfileCounts, readProfileProjection } from "@/lib/admin/profiles";
 export const IDENTITY_QUEUE_SIZE = 12;
 const filterSchema = z.object({
   q: z.string().trim().max(100).default(""), role: z.enum(["", "tenant", "landlord"]).default(""),
@@ -17,17 +18,16 @@ export function parseIdentityQueue(params: SearchParams) {
 const rowsSchema = z.array(z.object({ id: z.uuid(), full_name: z.string().nullable(), role: z.enum(["tenant", "landlord"]), verification_status: z.string().nullable() }));
 export async function readIdentityQueue(client: SupabaseClient, filters: IdentityQueueFilters) {
   await requireAdministrator(client);
-  let query = client.from("profiles").select("id,full_name,role,verification_status", { count: "exact" }).in("role", ["tenant", "landlord"]);
-  if (filters.q) query = query.ilike("full_name", literalSearch(filters.q));
-  if (filters.role) query = query.eq("role", filters.role);
-  if (filters.status !== "all") query = query.eq("verification_status", filters.status);
-  if (filters.submission === "submitted") query = query.not("cnic_path", "is", null);
-  if (filters.submission === "incomplete") query = query.is("cnic_path", null);
-  const start = (filters.page - 1) * IDENTITY_QUEUE_SIZE;
-  const result = await query.order("id").range(start, start + IDENTITY_QUEUE_SIZE - 1);
-  const parsed = rowsSchema.safeParse(result.data);
-  if (result.error || !parsed.success || !Number.isSafeInteger(result.count) || result.count === null || result.count < 0) throw new Error("IDENTITY_QUEUE_UNAVAILABLE");
-  // Parsed allowlist intentionally strips any unexpected/private response fields.
-  return { rows: parsed.data, count: result.count };
+  const args = { p_search: filters.q, p_role: filters.role, p_status: filters.status === "all" ? "" : filters.status,
+    p_submission: filters.submission, p_eligible: true };
+  try {
+    const [data, counts] = await Promise.all([
+      readProfileProjection(client, args, IDENTITY_QUEUE_SIZE, (filters.page - 1) * IDENTITY_QUEUE_SIZE),
+      readProfileCounts(client, args),
+    ]);
+    const parsed = rowsSchema.safeParse(data);
+    if (!parsed.success) throw new Error();
+    return { rows: parsed.data, count: counts.total };
+  } catch { throw new Error("IDENTITY_QUEUE_UNAVAILABLE"); }
 }
 export function identityQueueHref(filters: IdentityQueueFilters, page: number) { return `/admin/verifications?${new URLSearchParams({ ...filters, page: String(page) })}`; }

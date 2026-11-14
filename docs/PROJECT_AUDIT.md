@@ -311,3 +311,12 @@ records, branch protection, merges or deployment were changed.
 See BACKEND_INTEGRATION_AUDIT.md, DATABASE_MIGRATION_DEPENDENCIES.md,
 LOCAL_DATABASE_TESTING.md, ADMIN_VISIBILITY_DIAGNOSIS.md and
 RELEASE_CONSOLIDATION_PLAN.md; final counts and checks are in IMPLEMENTATION_PLAN.md.
+
+## Milestone 8E security follow-up — 15 November 2026
+
+PR #8 now proposes restricted admin projection/count RPCs instead of the unexecuted
+broad profiles SELECT policy. The four directory fields plus document-presence
+boolean are the complete row contract; contact/path/score columns remain own-only.
+Admin profile metrics use safe aggregates; rental metrics keep existing RLS scope.
+Diagnostics distinguish admin-projection from own-rls count paths. See
+ADMIN_ACCESS_FINAL_APPROVAL.md for evidence, current SQL and NO-GO live decision.

@@ -24,7 +24,7 @@ export default async function AdminVerifications({ searchParams = Promise.resolv
     </form>
     <IdentityReviewForm/>
     {failure && <p role="alert" className="rounded border p-4">{failure}</p>}
-    {queue && <><p className="text-sm">Exact accessible matching profiles: <strong>{queue.count}</strong>. Showing at most {IDENTITY_QUEUE_SIZE} on this page, ordered by profile reference. Counts do not prove platform-wide access.</p>
+    {queue && <><p className="text-sm">Exact accessible matching profiles: <strong>{queue.count}</strong>. Showing at most {IDENTITY_QUEUE_SIZE} on this page, ordered by profile reference. Counts cover the restricted administrator directory, not direct profile-table access.</p>
       {!queue.rows.length && <p className="rounded border border-dashed p-6">No accessible profiles match this page and filter.</p>}
       <section className="grid gap-3 sm:grid-cols-2" aria-label="Verification requests">{queue.rows.map(person => <article key={person.id} className="space-y-2 rounded border p-4">
         <h2 className="break-words font-semibold">{person.full_name || "Unnamed applicant"}</h2><p className="text-sm">Role: {person.role}</p>

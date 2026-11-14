@@ -476,3 +476,30 @@ Final local results: 28 focused and 35 regression PostgreSQL checks passed on
 build passed with loopback/dummy configuration. No browser/live Supabase tests run
 in 8D. Updated CI status is recorded in PR #8. No staging SQL, policies/privileges,
 accounts, documents, merge, deployment or feature changes.
+
+## Milestone 8E — Least-privilege administrator access
+
+15 November 2026. Existing draft PR #8; replaces unexecuted 8C/8D broad profile
+SELECT policy with a five-column projection and separate safe counts, both
+stored-admin-only. Existing table RLS/grants stay own-only, including admin;
+no Storage/service-role/write/feature-gate changes. Updated directory, queue,
+owner lookup, analytics and scope-labelled diagnostics. Missing interfaces fail
+closed without a direct-table fallback. See ADMIN_ACCESS_FINAL_APPROVAL.md for
+contracts, matrix, exact SQL, recovery and remaining live compatibility blockers.
+
+Final executed results are recorded below and in PR #8. Staging remains NO-GO;
+no staging connection/SQL, real accounts/documents, merge or deployment occurred.
+
+### Executed 8E validation
+
+- `npm run test:db:admin-repair`: **39 passed**, PostgreSQL **16.16**.
+- `npm run test:db:local`: **35 passed**, PostgreSQL **16.16**.
+- `npm test`: **222 passed across 27 files**.
+- `npm run lint -- --max-warnings=0`, `npm run typecheck`, production build and
+  `git diff --check`: passed. Build used loopback/dummy configuration only.
+- Local production browser suites: **22 general + 22 admin + 42 identity + 32
+  messaging = 118 passed**, synthetic loopback HTTP/session fixtures only.
+- Tests caught and corrected a rollback guard SQL alias collision and an outdated
+  owner-label browser selector; their final reruns passed. No unresolved local
+  test failure. Actual Supabase/JWT acceptance remains BLOCKED.
+- Updated GitHub Actions status is recorded on PR #8 for the final commit.

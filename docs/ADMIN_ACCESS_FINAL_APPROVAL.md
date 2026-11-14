@@ -1,205 +1,246 @@
-# Administrator repair — final security decision
+# Administrator access — least-privilege approval package (8E)
 
-15 November 2026 (Asia/Karachi). PR #8, based on PR #7. This review supersedes the
-readiness implications of the original a58d513 package. **Decision: NO-GO / BLOCKED
-for staging execution.** Local database success is not live compatibility evidence.
-No staging/production connection, SQL, accounts, private documents, deployment,
-merge or feature activation occurred in this review.
+15 November 2026 (Asia/Karachi). Existing draft PR #8, stacked on PR #7.
+**Staging decision: NO-GO / BLOCKED pending live preflight and separate approval.**
+This replaces the unexecuted 8C/8D broad-read proposal reviewed at 45075b2. Do not
+execute SQL excerpts from that revision or historical administrator bundles.
+No staging/production connection, SQL, real accounts/documents, merge, deployment,
+Storage grant or unrelated feature activation occurred in 8E.
 
-## 1. Confirmed staging evidence (owner supplied)
+## Confirmed evidence and remaining prerequisites
 
-Project ficudncgevvxsxbjscrk; six profiles (1 admin, 1 landlord, 4 tenants); existing
-admin can read one. Helper absent in every schema; SELECT profiles_select_own
-only; RLS enabled/FORCE off. Existing authenticated schema USAGE/table SELECT and
-protected-column UPDATE restrictions were reported; both diagnostics show
-PGRST202/count one. These observations explain the missing RPC and own-only data.
-They do not establish all grants, schema types/owners, routine writers or defaults.
+Owner supplied: project ficudncgevvxsxbjscrk; six profiles (admin 1, landlord 1,
+tenant 4); current admin sees one; helper absent in every schema; only own-profile
+SELECT policy; RLS on/FORCE off; diagnostics PGRST202. Missing helper and own-only
+RLS explain these symptoms. Existing authenticated USAGE/SELECT and protected
+column UPDATE restrictions were reported. Full live schema/grants remain unknown.
 
-## 2. Exact files and proposed execution boundary
+**BLOCKED:** live relation/schema ownership, PostgreSQL version, exact types,
+policy shapes, inherited grants/role attributes, function default ACLs, callable
+SECURITY DEFINER routines/alternate role writers, trigger definitions, auth.uid
+semantics, PostgREST exposure/cache, real JWT propagation and backup/window.
+Metadata hashes/text scans are not a semantic review of dynamic dependencies.
+Select the intended project privately; SQL current_database is not proof of the
+Supabase project reference. No permission change is authorized to make guards pass.
 
-| File | Status |
+## Selected architecture and privacy boundary
+
+All base `profiles` policies/grants remain unchanged: every authenticated subject,
+including admin, reads only their own row directly. There is **no new administrator
+SELECT policy**, table/column grant or Storage access. Existing own-profile phone
+and document-reference flows are preserved.
+
+Three public RPCs, postgres-owned, STABLE/SECURITY DEFINER, empty search_path:
+
+| RPC | Inputs / exact output |
 | --- | --- |
-| supabase/preflight_admin_visibility_minimum_readonly.sql | Exact new metadata/aggregate preflight for security review; NOT run live. This is the next evidence step, after review, not migration approval. |
-| supabase/migrations/20261115_admin_visibility_minimum_proposed.sql | Revised guarded repair; reviewed/tested locally, BLOCKED for staging. No scope approval given. |
-| supabase/rollback_admin_visibility_minimum_proposed.sql | Revised exact guarded rollback; separate approval, BLOCKED for staging. |
-| supabase/verify_admin_visibility_minimum_readonly.sql | Existing read-only post-deploy checks; owner metadata counts alone cannot prove JWT/RLS. |
+| makaanx_is_admin() | Zero arguments; boolean from protected stored role for auth.uid(). No client admin flag or metadata role. |
+| makaanx_admin_profiles(...) | Explicit table: id UUID, full_name TEXT, role TEXT, verification_status TEXT, has_document BOOLEAN. |
+| makaanx_admin_profile_counts(...) | Explicit one-row table of BIGINT total/admins/landlords/tenants/pending/submitted. No identities or document references. |
 
-Do not execute the historical admin/storage bundles or replay all migrations.
-Do not use the a58d513 SQL excerpt after this review; review the current PR files.
+Directory/count RPCs check the helper **before filters** and raise 42501 for
+non-admins, including empty filters/pages. They use qualified tables/functions,
+static SQL and no writes, target administrator parameter or dynamic SQL. Postgres
+is the required trusted owner of profiles and functions; FORCE must be off so the
+helper does not recursively apply profiles RLS. Owner identity is not caller-
+controlled. Revoked PUBLIC/anon EXECUTE; authenticated non-grantable EXECUTE only,
+with extra default/inherited executors causing atomic refusal.
 
-## 3. Security and compatibility findings
+No cross-profile phone, raw CNIC paths, trust/verification scores or Storage objects
+are returned. `has_document` means cnic_path IS NOT NULL, not valid, authentic,
+nonblank or downloadable. Contact/document sentinels are synthetic test data only.
+This resolves the 8D column-exposure blocker at the database interface, rather than
+relying on React to hide returned fields. Future profile columns are not included.
+Any change to the allowlist requires a new security review.
 
-- The SQL/STABLE/zero-argument boolean helper uses protected stored profiles.role,
-  not metadata or a target parameter. Owner postgres equals table owner, FORCE
-  disabled; this avoids recursive profile RLS. Empty search_path and qualified
-  public.profiles/auth.uid references are correct. No record mutation in the body.
-- Existing public/anon EXECUTE is revoked on the new function; authenticated gets
-  non-grantable EXECUTE. Extra function default grantees abort. Other function/
-  schema/policy/column conflicts remain fail-closed; own/write ACLs are preserved.
-- New guard rejects client or reachable parent roles with superuser, BYPASSRLS or
-  CREATEROLE attributes, and membership of postgres. Actor tests remain non-bypass.
-- Creating a missing helper can unintentionally activate an existing PL/pgSQL RPC
-  that already references it. New guard blocks literal references in other routines;
-  preflight inventories public callable SECURITY DEFINER routines and helper refs.
-  Dynamic/constructed names or indirect writers require private owner source review;
-  the text scan is deliberately conservative and is NOT proof of a complete graph.
-- Rollback now also refuses profile ownership/relation/RLS/FORCE drift.
-- DROP FUNCTION RESTRICT does not capture all SQL/PL/pgSQL **text-body** references.
-  A real PG test demonstrates zero pg_depend edge for a text-body caller. Rollback
-  now refuses known textual references as well as catalog dependencies. Unknown
-  dynamic dependencies remain a review blocker, not permission to use CASCADE.
-- Added 30-second idle-in-transaction timeout to repair/rollback alongside 5-second
-  lock and 30-second statement limits. This bounds a paused batch's lock retention;
-  execute one batch and explicitly ROLLBACK after an error rather than pausing.
-- No syntax/privilege-query defect was found in the originally tested a58d513 SQL
-  on PostgreSQL 16.16. Added guard/preflight alias/parenthesis errors were caught by
-  local execution and corrected before final validation. No guard was weakened.
-- Actual Supabase PostgreSQL version is still unknown. The preflight reports it;
-  PG16-only membership fields are read through to_jsonb and are null on older
-  catalogs. Plain PG tests do not validate PostgREST/JWT/session/cache behavior.
+## Filters, counts and pagination
 
-## 4. Sensitive-column exposure — approval blocker
+Both read RPCs accept the same validated filters: literal case-insensitive name
+substring (max 100 characters), role in empty/admin/tenant/landlord, status in
+empty/pending/verified/rejected, submission all/submitted/incomplete, required
+boolean eligible-only, optional UUID IDs (max 100, one dimension, no null entries).
+Empty IDs match nothing; omitted IDs means no ID filter. Null/unknown filter
+values are rejected. Percent, underscore and backslash are escaped as literals.
+There is no caller-provided SQL, field name or ordering expression.
 
-The existing authenticated **table SELECT** grant, combined with an admin row
-policy, makes **every non-dropped current profile column, and future table-granted
-columns, selectable across all profiles by stored admins**. Local baseline fields
-are id, full_name, phone, role, trust_score, verification_score, verification_status,
-cnic_path. The exact live inventory is unknown until the preflight; do not assume
-that this list is exhaustive. No private values are retrieved by the preflight.
+Directory requires limit 1–100 and offset 0–1,000,000; defaults 100/0; fixed UUID
+ascending order. Invalid inputs raise 22023 after authorization. Counts use identical
+predicates without pagination; an empty page can still have a nonzero total.
+Queue requests 12 per page, eligible tenants/landlords only. Owner lookup uses at
+most 12 distinct IDs from the existing property page, capped server-side at 100.
 
-| Actual admin application query | Needed cross-profile information |
+Rows/counts are separate read statements and can differ under concurrent profile
+changes; ordering is stable within a snapshot but offset pagination can shift as
+rows change. At six staging rows this is bounded and preserves existing behavior.
+No unbounded profile-row response exists; aggregate scans can grow with table size
+and require future operational review/indexing if scale warrants it.
+
+## Workflows and diagnostic semantics
+
+| Workflow | 8E implementation |
 | --- | --- |
-| app/admin/users and lib/identity/queue | id, full_name, role, verification_status |
-| lib/admin/data property-owner lookup | id, full_name |
-| Profile/role/pending analytics | Counts, grouped role/status, document-presence predicate |
-| /auth/diagnostics | Helper boolean + exact count, no rows |
-| Authorization | Own stored role only |
+| User directory | Restricted projection, first 100 rows ordered by ID, same visible four fields. |
+| Verification queue | Same name/role/status/submission filters and 12-row pagination; safe exact matching count. |
+| Property-owner labels | Restricted ID-filtered projection; only id/name consumed. No inferred missing names. |
+| Dashboard/analytics profile metrics | Restricted aggregate RPC: total, roles, eligible pending and submitted pending counts. |
+| Property/application metrics and samples | Existing RLS-scoped requests unchanged; their coverage is distinct. |
+| Authentication/authorization | Existing verified user + protected own role; no metadata role trust. |
+| Own-profile reads/writes | Existing policies and column privileges unchanged. |
 
-Phone, raw document paths and verification/trust scores are not returned by the
-current admin pages. `cnic_path` is used only as an
-IS NULL/NOT NULL predicate; a presence boolean suffices. A synthetic test proves
-admin can query unnecessary contact/path columns after the proposed policy while
-an ordinary tenant cannot. No real private path/document was accessed.
+`/auth/diagnostics` now explicitly reports **six privacy-safe fields**:
+projectReference, authenticatedRole, adminRpcResult, accessibleProfileCount,
+**accessibleProfileCountScope**, errorCodes.
 
-**Finding:** broader than current UI needs. No Storage bytes/list/download grant
-is added, but a private object path itself is sensitive metadata. Not selecting it
-in React is not database-level least privilege. Owner privacy/data-scope acceptance
-or a narrower design is BLOCKED; passing SQL guards does not approve exposure.
+- Helper true: scope `admin-projection`; count is unrestricted-filter directory
+  total from the admin count RPC (expected 6), not direct base-table access.
+- Helper false: scope `own-rls`; direct HEAD profiles count (expected 1).
+- Helper unavailable: count and scope null; sanitized helper error code. No silent
+  own-RLS fallback that could disguise a missing administrator interface.
+- Admin count failure: scope admin-projection, count null, sanitized profiles code.
+  Successful zero stays distinct from unavailable.
 
-## 5. Minimal safer alternative — proposed, not implemented
+Direct profiles count for **all** existing signed-in subjects remains one under
+this baseline, including admin. Historical reports with no scope field used the
+old direct-table meaning; do not compare those counts to admin-projection as the
+same metric. Browser/server must use the same reviewed app revision/configuration.
+No tokens, claims, IDs, contacts, raw errors or document values are serialized.
 
-Keep base profiles RLS own-only and existing own-user reads unchanged. Expose a
-trusted-admin-only projection/RPC returning id/full_name/role/verification_status
-and has_document boolean, plus safe aggregate counts. Authorize with the same
-stored-role helper; no new role model, Storage access or service key. A view option
-would require a security-barrier, explicit allowlist, trusted ownership and explicit
-admin predicate; an RPC must validate filters/pagination and not return raw paths.
+## Before/after authorization matrix
 
-Adapt only admin directory/queue/owner/count queries to that projection. Visible
-names, six-profile directory, filters and analytics can be preserved. Do not
-simply revoke table SELECT and grant four columns to authenticated: tenants,
-landlords and admins share that DB role, so legitimate own-profile phone/path
-flows would break. This requires a separately reviewed adapter/API change and tests.
+| Actor / operation | Before | Proposed 8E |
+| --- | --- | --- |
+| Admin direct profiles SELECT | Own row | Own row |
+| Admin restricted directory/count | Missing / PGRST202 | 6 allowlisted rows / total 6 |
+| Tenant/landlord direct SELECT | Own row | Own row |
+| Tenant/landlord directory/count | Absent | 42501, even with filters/pages |
+| Anonymous profiles/helper/directory/count | Denied/absent | Denied |
+| Protected role/status/document/score UPDATE | Denied | Unchanged/denied, including admin |
+| Optional own name/phone UPDATE | Existing own policy | Preserved; unrelated rows denied |
+| Storage files/list/download | Existing boundaries | No change or permission granted |
 
-The current diagnostic's HEAD count explicitly means **base-table RLS visibility**.
-With own-only base RLS that count correctly remains one; do not silently report a
-projection count as the same metric or claim the original direct-count contract is
-unchanged. A projection design needs explicit diagnostic scope/label review. No
-alternative migration, application query switch or feature gate is enabled here.
+All after-results above are **local synthetic evidence**, not live acceptance.
 
-## 6. Remaining exact preflight checks — all live results BLOCKED
+## Exact SQL files and execution order (not executed live)
 
-- Project selection, PostgreSQL version and actual inspecting role; profiles/
-  schema ownership, ordinary table/no inheritance, RLS/FORCE, UUID id PK, non-null
-  TEXT role and required column inventory/types.
-- Exact SELECT/optional UPDATE policy shapes; no unexpected policies. Script
-  returns hashes/shape booleans, not potentially identifying policy literals.
-- Effective table/column INSERT/UPDATE/DELETE/etc, anon read denial, schema CREATE,
-  transitive privileged membership and direct membership/admin options.
-- Global/built-in plus schema-additive function EXECUTE defaults. Extra surviving
-  grantees cause the repair to roll back; do not modify global defaults to pass.
-- Helper/overload absence, auth.uid metadata, executable SECURITY DEFINER routines,
-  helper references, auth.users/profiles trigger metadata. Source hashes/flags
-  are not a semantic review of alternate role writers or dynamic SQL. Owner must
-  privately inspect any unclear definition without sharing secrets or literals.
-- Six-profile aggregate and existing intended administrator assignment. Aggregates
-  alone cannot identify the signed-in subject; keep identities private and validate
-  the real session after any separately approved change.
+1. `supabase/preflight_admin_visibility_minimum_readonly.sql`: reviewed read-only,
+   repeatable-read metadata/hash/shape/aggregate inventory; 15-second statement
+   timeout; no identities, paths, bodies, policy literals or trigger arguments.
+2. `supabase/migrations/20261115_admin_visibility_minimum_proposed.sql`: revised
+   8E migration in the existing unexecuted filename; execute **this file only**,
+   not a migration directory push or historical bundles, after separate approval.
+3. `supabase/verify_admin_visibility_minimum_readonly.sql`: metadata/aggregate
+   verification; compare source hashes with exact rollback body_hash constants.
+4. `supabase/rollback_admin_visibility_minimum_proposed.sql`: separately approved
+   guarded rollback only. Removes the three new functions; never CASCADE.
 
-The preflight is a REPEATABLE READ READ ONLY transaction with 15-second statement
-limit. It returns metadata/hashes/flags and role counts only: no profile identities,
-contacts, paths, function bodies, trigger arguments or JWTs. It creates no objects,
-changes no privileges, invokes no application RPC and obtains no new locks beyond
-normal SELECT access. It cannot prove the project reference from SQL alone or
-predict changes after the snapshot; execution-time guards remain necessary.
+Migration rejects unexpected functions/overloads anywhere, literal references in
+other routines (unintended activation), RLS/owner/inheritance/type/policy drift,
+dangerous inherited/write/schema grants and changed 6/1/1/4 aggregates. It preserves
+all existing policies and table/column ACLs and verifies hashes before commit.
+Default function grants to extra roles abort the whole transaction. A managed
+Supabase default may differ from local PG: inspect it; do not weaken the guard.
 
-## 7. Authorization matrix (proposed row policy, not live results)
+Rollback verifies relation/RLS/type/policy/grant baseline, exact signatures,
+reviewed source hashes, output types, owner/language/settings/comment/EXECUTE,
+absence of extra overloads and external text references, then drops the three
+functions with RESTRICT. It does not rewind account rows or rely on a six-row
+count after later legitimate activity. Source text references can lack pg_depend
+edges; conservative scanning supplements RESTRICT but cannot prove absence of
+constructed/dynamic references. Manual private review remains necessary.
 
-| Actor/operation | Before | Proposed result locally | Live acceptance |
-| --- | --- | --- | --- |
-| Admin SELECT | Own row | Six profiles, including unneeded selectable columns | BLOCKED on scope decision + preflight |
-| Tenant/landlord SELECT | Own row | Own row only | BLOCKED pending real sessions |
-| Anonymous profile/helper | No access required | Denied | BLOCKED pending live check |
-| Authenticated helper | Absent / PGRST202 | Own-role boolean, no target parameter | BLOCKED pending real RPC/cache check |
-| Protected writes | Denied requirement | Unchanged/denied | BLOCKED pending effective grants |
-| Optional own name/phone writes | Existing own rules | Unchanged | No expansion authorized |
-| Storage/documents | Existing boundaries | No grant/change | No access authorized |
+## Transaction, availability and recovery
 
-## 8. Backup, locks and recovery prerequisites
+Both write scripts are atomic transactions: SHARE ROW EXCLUSIVE profiles lock,
+5-second lock_timeout, 30-second statement_timeout and 30-second idle-in-transaction
+session timeout. Ordinary profile SELECT remains available; writes/signup can
+briefly wait. Function catalog locks also apply. Timeout/guard failure means abort;
+explicitly ROLLBACK/close the failed session, do not continue partial statements.
+Run a single reviewed batch with no concurrent DDL/role/grant changes. Table lock
+alone does not serialize unrelated catalog changes; the quiet window is required.
 
-Owner must verify a restorable backup and private baseline ACL/policy/routine
-snapshot, exact project/revision/script hash, quiet maintenance window and no
-concurrent DDL. Backups must not be committed or exported to chat. SHARE ROW
-EXCLUSIVE allows ordinary reads but can briefly block profile writes/signup.
-Timeout/guard failure aborts the transaction; close/ROLLBACK the failed session.
-No account rows, profile grants or existing policies are changed by the repair.
+Owner must attest a restorable backup and private baseline metadata snapshot,
+exact project/revision/script hashes and maintenance window. Do not commit backups
+or copy private definitions/credentials into chat. A failed migration leaves no
+new RPCs; investigate the failed guard rather than remove it or retry blindly.
 
-Rollback: after separate approval, run the exact rollback file as one transaction.
-It validates helper/body/settings/comment/ACL and both SELECT policies, refuses
-known routine references, drops only the added policy/helper with RESTRICT and
-commits. Any failure must roll back; do not remove dependencies or use CASCADE.
-Rollback returns admin visibility to own-only and the RPC to absent; it does not
-erase data. Changes made by later authorized migrations require a new rollback
-review. No rollback was run on staging.
+After separately approved rollback, new RPCs are absent and the new app shows
+honest unavailable states. Coordinate a separately approved application revision
+rollback/release; do not treat old broad-policy SQL as fallback. If any rollback
+guard/dependency fails, stop and prepare a revised recovery review. Never CASCADE.
+No app deployment or cache reload is performed/authorized by this package.
 
-## 9. Post-deployment and authenticated-session criteria (not run live)
+## Post-deployment acceptance — BLOCKED / not run live
 
-After a separately approved change only: owner runs the exact read-only verify
-file, confirms owner/empty path/STABLE/zero args/EXECUTE and unchanged own/write
-ACLs. Existing admin browser/server diagnostics must match intended project,
-API role authenticated, helper true, accessibleProfileCount six and empty codes
-for the current row-policy design. Ordinary existing tenant/landlord sessions:
-helper false, own count one. Anonymous denied. No forged claims/accounts/writes.
-If a narrower projection is chosen, review its distinct diagnostic criteria first.
+After separately authorized staging change only: run exact verify script, compare
+all three bodies/contracts/owners/settings/ACLs and confirm profiles_select_own is
+the only SELECT policy; existing profile write privileges and data unchanged.
+Use existing real admin/tenant/landlord sessions privately, never created accounts
+or forged SQL JWT claims. Admin browser/server expected project ficudncgevvxsxbjscrk,
+role authenticated, helper true, count 6, scope admin-projection, empty errorCodes.
+Tenant/landlord: helper false, count 1, own-rls; admin RPCs denied. Anonymous denied.
+Confirm directory, filters, queue, labels and metrics without fetching private
+files or writing account fields. Missing RPC/PGRST202 after confirmed creation
+requires discovery/cache/exposure investigation, not reapplying CREATE. Any manual
+cache notification/reload needs separate approval; it is not part of preflight.
 
-PostgREST discovery/cache and real JWT propagation remain untested locally.
-Existing helper + persistent PGRST202 warrants cache investigation, not reapplying
-CREATE or adding more policies. Any manual NOTIFY/cache reload needs its own
-review/approval and is not in the read-only preflight. No app deployment needed
-if public configuration already matches the intended project and revision.
+## Validation and decision
 
-## 10. Decision and approval boundary
+Final actual local/CI counts are recorded in the PR and implementation plan after
+execution. PostgreSQL uses isolated disposable network-none fixtures and real
+non-owner/NOBYPASSRLS actor roles with a fixed SESSION_USER Auth adapter. HTTP/browser
+fixtures use synthetic sessions only: they are not Supabase/JWT/RLS certification.
+Build uses loopback/dummy public configuration. No dependencies or feature gates
+are changed by 8E.
 
-**NO-GO.** Blocking items: live metadata/precondition results absent; sensitive
-cross-profile column scope not approved (narrower alternative recommended);
-alternate writer/dynamic routine review absent; actual Supabase version/cache/
-JWT behavior unverified; restorable backup/window not attested. Exact tested SQL
-and the existence of a single admin do not remove these blockers.
+**NO-GO for staging execution.** The broad-column privacy defect is resolved by the
+proposed implementation. Live baseline/routine/default-ACL/version compatibility,
+backup/window and owner acceptance of the five-field projection + safe aggregates
+still require review. Next: ChatGPT reviews exact revised files; owner supplies
+only missing read-only metadata after review; Codex reconciles evidence locally.
+Copilot may review the same diff/tests; it must not apply SQL or enable features.
+No staging execution, merge, deployment or account mutation approval is requested.
 
-Next: ChatGPT security-review the preflight and findings; the owner obtains only
-missing live read-only evidence and decides the profile data scope. Codex can then
-reconcile a precise reviewed diff or implement the authorized projection locally.
-No staging migration execution, privilege change, merge, deployment or feature
-activation approval is requested by this document.
+### Executed 8E validation
 
-## 11. Actual final local validation
+- `npm run test:db:admin-repair`: **39 passed**, PostgreSQL **16.16**.
+- `npm run test:db:local`: **35 passed**, PostgreSQL **16.16**.
+- `npm test`: **222 passed across 27 files**.
+- `npm run lint -- --max-warnings=0`, `npm run typecheck`, production build and
+  `git diff --check`: passed. Build used loopback/dummy configuration only.
+- Local production browser suites: **22 general + 22 admin + 42 identity + 32
+  messaging = 118 passed**, synthetic loopback HTTP/session fixtures only.
+- Tests caught and corrected a rollback guard SQL alias collision and an outdated
+  owner-label browser selector; their final reruns passed. No unresolved local
+  test failure. Actual Supabase/JWT acceptance remains BLOCKED.
+- Updated GitHub Actions status is recorded on PR #8 for the final commit.
 
-PostgreSQL **16.16**, disposable network-isolated synthetic fixtures only:
-`npm run test:db:admin-repair` **28 passed** (including executing the exact preflight,
-privileged memberships, unintended activation, sensitive-column exposure, rollback
-RLS drift and text-body dependencies); `npm run test:db:local` **35 passed**.
-`npm test` **210 passed / 26 files**; `npm run lint -- --max-warnings=0`,
-`npm run typecheck` and `npm run build` passed. Build used only loopback/dummy public
-configuration, not staging. No browser or actual Supabase session tests were run
-in 8D; no application/UI behavior changed. Final `git diff --check` passed.
-GitHub Actions results for the updated revision are recorded on existing PR #8.
+## Exact 8E changed-file manifest
+
+- `app/admin/users/page.tsx`
+- `app/admin/verifications/page.tsx`
+- `app/auth/diagnostics/page.tsx`
+- `components/admin/presentation.tsx`
+- `docs/ADMIN_ACCESS_FINAL_APPROVAL.md`
+- `docs/ADMIN_ACCESS_REPAIR.md`
+- `docs/ADMIN_VISIBILITY_DIAGNOSIS.md`
+- `docs/IMPLEMENTATION_PLAN.md`
+- `docs/PROJECT_AUDIT.md`
+- `lib/admin/data.ts`
+- `lib/admin/profiles.ts`
+- `lib/diagnostics/admin-access.ts`
+- `lib/identity/queue.ts`
+- `scripts/admin-browser-smoke.cjs`
+- `scripts/browser-smoke.cjs`
+- `scripts/identity-browser-smoke.cjs`
+- `scripts/local-db/admin-repair.cjs`
+- `scripts/rental-fixture-server.cjs`
+- `supabase/migrations/20261115_admin_visibility_minimum_proposed.sql`
+- `supabase/preflight_admin_visibility_minimum_readonly.sql`
+- `supabase/rollback_admin_visibility_minimum_proposed.sql`
+- `supabase/verify_admin_visibility_minimum_readonly.sql`
+- `tests/admin-access.test.ts`
+- `tests/admin-management.test.ts`
+- `tests/admin-pages.test.tsx`
+- `tests/admin-profiles.test.ts`
+- `tests/helpers/rental-client.ts`
+- `tests/identity-queue.test.ts`

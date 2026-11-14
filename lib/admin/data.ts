@@ -4,6 +4,8 @@ import { requireAdministrator } from "./access";
 import { PAGE_SIZE, PROPERTY_COLUMNS, literalSearch, parseSearch, type RentalSearch, type SearchParams } from "@/lib/rentals/schema";
 import { parseProperties } from "@/lib/rentals/queries";
 
+import { readProfileCounts, readProfileProjection } from "./profiles";
+
 export const COVERAGE = "accessible-unverified" as const;
 export type AdminPropertyFilters = RentalSearch & { status: string };
 export function parseAdminPropertyFilters(params: SearchParams) {
@@ -36,9 +38,8 @@ export async function readAdminProperties(client: SupabaseClient, filters: Admin
   if (ids.length) {
     try {
       // No email, phone, CNIC paths, storage objects or other profile columns.
-      const owners = await client.from("profiles").select("id,full_name").in("id", ids);
-      ownerError = Boolean(owners.error || !owners.data);
-      if (!ownerError) for (const owner of owners.data ?? []) {
+      const owners = await readProfileProjection(client, { p_ids: ids });
+      for (const owner of owners) {
         if (typeof owner.id === "string" && typeof owner.full_name === "string" && owner.full_name.trim()) names.set(owner.id, owner.full_name);
       }
     } catch { ownerError = true; }
@@ -72,22 +73,24 @@ export function summarizeSample(result: { data: unknown; error: unknown }): Acti
 }
 export async function readAdminAnalytics(client: SupabaseClient) {
   await requireAdministrator(client);
-  // Every count is exact for its own RLS-scoped request, never a global guarantee.
+  // Profile counts use the restricted RPC; rental counts retain their own RLS scope.
   const queries = [
-    ["Accessible users", client.from("profiles").select("id", { count: "exact", head: true })],
-    ...["admin", "landlord", "tenant"].map(role => [`Accessible ${role} profiles`, client.from("profiles").select("id", { count: "exact", head: true }).eq("role", role)] as const),
     ["Accessible properties", client.from("properties").select("id", { count: "exact", head: true })],
     ["Accessible applications", client.from("applications").select("id", { count: "exact", head: true })],
     ...["pending", "approved", "rejected"].map(status => [`Accessible ${status} applications`, client.from("applications").select("id", { count: "exact", head: true }).eq("status", status)] as const),
-    ["Pending eligible profiles", client.from("profiles").select("id", { count: "exact", head: true }).in("role", ["tenant", "landlord"]).eq("verification_status", "pending")],
-    ["Submitted pending verification requests", client.from("profiles").select("id", { count: "exact", head: true }).in("role", ["tenant", "landlord"]).eq("verification_status", "pending").not("cnic_path", "is", null)],
   ] as const;
-  const [metrics, properties, applications] = await Promise.all([
+  const [metrics, properties, applications, profileCounts] = await Promise.all([
     Promise.all(queries.map(async ([label, query]) => {
       try { return metric(label, await query); } catch { return metric(label, { count: null, error: true }); }
     })),
     (async () => { try { return summarizeSample(await client.from("properties").select("status,created_at").order("created_at", { ascending: false }).order("id").limit(SAMPLE_LIMIT)); } catch { return summarizeSample({ data: null, error: true }); } })(),
     (async () => { try { return summarizeSample(await client.from("applications").select("status,created_at").order("created_at", { ascending: false }).order("id").limit(SAMPLE_LIMIT)); } catch { return summarizeSample({ data: null, error: true }); } })(),
+    readProfileCounts(client).catch(() => null),
   ]);
-  return { metrics, properties, applications, coverage: COVERAGE };
+  const profileMetric = (label: string, key: "total" | "admins" | "landlords" | "tenants" | "pending" | "submitted") =>
+    metric(label, { count: profileCounts?.[key] ?? null, error: !profileCounts });
+  return { metrics: [profileMetric("Accessible users", "total"), profileMetric("Accessible admin profiles", "admins"),
+    profileMetric("Accessible landlord profiles", "landlords"), profileMetric("Accessible tenant profiles", "tenants"),
+    ...metrics, profileMetric("Pending eligible profiles", "pending"), profileMetric("Submitted pending verification requests", "submitted")],
+    properties, applications, coverage: COVERAGE };
 }

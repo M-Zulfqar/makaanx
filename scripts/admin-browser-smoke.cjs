@@ -29,23 +29,27 @@ function fixtureSession(role) {
           assert.equal((await page.content()).includes('PRIVATE_FIXTURE_DOCUMENT'), false);
           if (route.endsWith('analytics')) {
             const visibleUsers = page.getByRole('heading', { name: 'Accessible users', exact: true }).locator('..');
-            assert.equal(await visibleUsers.locator('p').first().textContent(), '1');
+            assert.equal(await visibleUsers.locator('p').first().textContent(), '6');
             const eligible = page.getByRole('heading', { name: 'Pending eligible profiles', exact: true }).locator('..');
-            assert.equal(await eligible.locator('p').first().textContent(), '0');
-            checks++; console.log('PASS analytics displays restricted counts and excludes admin verification');
+            assert.equal(await eligible.locator('p').first().textContent(), '5');
+            checks++; console.log('PASS analytics displays projection counts and excludes admin verification');
           }
         }
         checks++; console.log(`PASS ${role} ${route}`);
       }
       if (role === 'admin') {
+        await page.goto(new URL('/admin/users',base).href);
+        assert.equal(await page.locator('main article').count(),6);
+        assert.equal((await page.content()).includes('PRIVATE_FIXTURE_DOCUMENT'),false);
+        checks++;console.log('PASS directory returns six safe projections');
         await page.goto(new URL('/admin/properties', base).href);
         await page.getByRole('heading', { name: 'Fixture rental 25', exact: true }).waitFor(); // occupied is included
         await page.getByRole('link', { name: 'Next', exact: true }).click(); await page.waitForURL(/page=2/);
         checks++; console.log('PASS administrator pagination includes occupied listings');
         await page.getByLabel('Listing status').fill('occupied'); await page.getByRole('button', { name: 'Search', exact: true }).click();
         await page.waitForURL(/status=occupied/); await page.getByRole('heading', { name: 'Fixture rental 25', exact: true }).waitFor(); assert.equal(await page.getByRole('heading', { name: /^Fixture rental/ }).count(), 1);
-        await page.getByText('Name unavailable in permitted profile records', { exact: false }).waitFor();
-        checks++; console.log('PASS status filter and restricted owner information');
+        await page.getByText('Owner: Fixture landlord', { exact: true }).waitFor();
+        checks++; console.log('PASS status filter and permitted owner label');
         assert.equal(await page.getByRole('button', { name: /Delete|Approve|Reject|Save changes/ }).count(), 0);
         checks++; console.log('PASS no moderation write controls');
         await page.setViewportSize({ width: 375, height: 812 });

@@ -1,5 +1,15 @@
 # Administrator visibility — evidence-driven diagnosis
 
+## Current 8E diagnostic contract — 15 November 2026
+
+The unexecuted broad-row policy proposal is replaced by restricted admin RPCs.
+See ADMIN_ACCESS_FINAL_APPROVAL.md. `accessibleProfileCountScope` is explicit:
+admin-projection means the safe directory total (expected 6 for admin); own-rls
+means direct own-table count (expected 1 for ordinary users). Direct table count
+stays 1 for admins too. Historical unscoped counts below measure direct RLS;
+do not compare them as the same metric. Missing helper yields null count/scope;
+missing admin count RPC yields null count with admin-projection scope. No fallback.
+
 ## Latest confirmed evidence — 15 November 2026
 
 The owner now confirms **no makaanx_is_admin overload in any schema and no admin

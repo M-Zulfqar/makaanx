@@ -1,17 +1,16 @@
 import { administratorClient } from "@/lib/admin/server";
+import { readProfileProjection } from "@/lib/admin/profiles";
 export const dynamic = "force-dynamic";
 
 export default async function AdminUsersPage() {
   const supabase = await administratorClient();
-  const { data: users, error } = await supabase.from("profiles")
-    .select("id,full_name,role,verification_status")
-    .order("id").limit(100);
+  let users: Awaited<ReturnType<typeof readProfileProjection>> = [], error = false;
+  try { users = await readProfileProjection(supabase); } catch { error = true; }
   return <main className="mx-auto max-w-6xl space-y-5 p-6">
     <h1 className="text-3xl font-bold">User directory</h1>
     <p className="rounded border p-4 text-sm">
-      Read-only. Displays up to 100 accounts visible to your administrator
-      under the current database policies. Platform-wide access requires
-      reviewed administrator RLS rules.
+      Read-only. Displays up to 100 accounts through the restricted administrator directory,
+      ordered by profile reference. Contact information and document paths are excluded.
     </p>
     {error && <p role="alert">Unable to load users: {"Check profile permissions or try again."}</p>}
     {!error && !users?.length && <p>No accessible user profiles found.</p>}

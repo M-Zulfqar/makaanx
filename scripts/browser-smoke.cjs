@@ -70,7 +70,7 @@ if (!['127.0.0.1', 'localhost', '[::1]'].includes(base.hostname) || !['http:', '
     assert.equal(diagnosticResponse.status(), 401);
     assert.match(diagnosticResponse.headers()['cache-control'], /private, no-store/);
     const report = await diagnosticResponse.json();
-    assert.deepEqual(Object.keys(report).sort(), ['accessibleProfileCount', 'adminRpcResult', 'authenticatedRole', 'errorCodes', 'projectReference'].sort());
+    assert.deepEqual(Object.keys(report).sort(), ['accessibleProfileCount', 'accessibleProfileCountScope', 'adminRpcResult', 'authenticatedRole', 'errorCodes', 'projectReference'].sort());
     assert.equal(report.accessibleProfileCount, null); assert.equal(report.adminRpcResult, null);
     checks++; console.log('PASS unauthenticated diagnostic privacy and caching');
     await page.getByRole('button', { name: 'Run read-only diagnostics' }).click();

@@ -1,11 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { parseProfileCounts } from "@/lib/admin/profiles";
+
 type DiagnosticClient = Pick<SupabaseClient, "auth" | "rpc" | "from">;
 export type AccessReport = {
   projectReference: string | null;
   authenticatedRole: "authenticated" | "anon" | "unexpected" | null;
   adminRpcResult: boolean | null;
   accessibleProfileCount: number | null;
+  accessibleProfileCountScope: "admin-projection" | "own-rls" | null;
   errorCodes: Partial<Record<"configuration" | "auth" | "claims" | "adminRpc" | "profiles", string>>;
 };
 
@@ -29,7 +32,7 @@ export function emptyAccessReport(url: string | undefined): AccessReport {
   const reference = projectReference(url);
   return {
     projectReference: reference, authenticatedRole: null, adminRpcResult: null,
-    accessibleProfileCount: null,
+    accessibleProfileCount: null, accessibleProfileCountScope: null,
     errorCodes: reference ? {} : { configuration: "PROJECT_REFERENCE_UNAVAILABLE" },
   };
 }
@@ -72,23 +75,30 @@ export async function collectAccessReport(client: DiagnosticClient, url: string 
     return { report, authenticated };
   }
 
-  await Promise.all([
-    (async () => {
-      try {
-        const { data, error } = await client.rpc("makaanx_is_admin");
-        if (error) report.errorCodes.adminRpc = errorCode(error);
-        else if (typeof data === "boolean") report.adminRpcResult = data;
-        else report.errorCodes.adminRpc = "UNEXPECTED_RPC_RESULT";
-      } catch (error) { report.errorCodes.adminRpc = errorCode(error); }
-    })(),
-    (async () => {
-      try {
-        const { count, error } = await client.from("profiles").select("id", { count: "exact", head: true });
-        if (error) report.errorCodes.profiles = errorCode(error);
-        else if (typeof count === "number" && Number.isSafeInteger(count) && count >= 0) report.accessibleProfileCount = count;
-        else report.errorCodes.profiles = "COUNT_UNAVAILABLE";
-      } catch (error) { report.errorCodes.profiles = errorCode(error); }
-    })(),
-  ]);
+  try {
+    const { data, error } = await client.rpc("makaanx_is_admin");
+    if (error) report.errorCodes.adminRpc = errorCode(error);
+    else if (typeof data === "boolean") report.adminRpcResult = data;
+    else report.errorCodes.adminRpc = "UNEXPECTED_RPC_RESULT";
+  } catch (error) { report.errorCodes.adminRpc = errorCode(error); }
+
+  // Admin counts measure the restricted projection, never direct table coverage.
+  // A failed helper/count remains unavailable; do not silently fall back to RLS.
+  if (report.adminRpcResult === null) return { report, authenticated };
+  report.accessibleProfileCountScope = report.adminRpcResult ? "admin-projection" : "own-rls";
+  try {
+    if (report.adminRpcResult) {
+      const { data, error } = await client.rpc("makaanx_admin_profile_counts", {});
+      const parsed = parseProfileCounts(data);
+      if (error) report.errorCodes.profiles = errorCode(error);
+      else if (parsed.success) report.accessibleProfileCount = parsed.data[0].total;
+      else report.errorCodes.profiles = "COUNT_UNAVAILABLE";
+    } else {
+      const { count, error } = await client.from("profiles").select("id", { count: "exact", head: true });
+      if (error) report.errorCodes.profiles = errorCode(error);
+      else if (typeof count === "number" && Number.isSafeInteger(count) && count >= 0) report.accessibleProfileCount = count;
+      else report.errorCodes.profiles = "COUNT_UNAVAILABLE";
+    }
+  } catch (error) { report.errorCodes.profiles = errorCode(error); }
   return { report, authenticated };
 }
